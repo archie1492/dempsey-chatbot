@@ -53,7 +53,7 @@ export const resetBrief = (b: Brief) => Object.assign(b, newBrief());
 // ── resolver: what to ask next ─────────────────────────────────────────────
 const applies = (b: Brief, q: Q) => (q.when ? q.when(b) : true);
 
-const RFQ_KEEP: SlotId[] = ["sector", "projectType", "solicitation", "solicitationDetails", "contactName", "contactReach"];
+const RFQ_KEEP: SlotId[] = ["sector", "projectType", "solicitation", "solicitationDetails", "contactName", "contactReach", "company"];
 
 export const nextRoute = (b: Brief): Route => {
   if (b.kind === "client") {
@@ -118,6 +118,19 @@ const isCommand = (text: string, list: string[]) => {
   const t = normalize(text).replace(/[.!?]+$/, "");
   return wordCount(t) <= 5 && list.some((c) => t === c || (c.includes(" ") && hasTerm(t, c)));
 };
+
+/** "Don't save this", "delete this conversation" and similar. */
+export const isWithdrawRequest = (text: string): boolean => {
+  const t = normalize(text).replace(/[.!?]+$/, "");
+  if (isCommand(text, COMMANDS.withdraw)) return true;
+  return wordCount(t) <= 8 && /\b(delete|erase|remove|forget)\b.{0,24}\b(conversation|chat|this|data|everything)\b/.test(t)
+    && !/\b(project|wall|room|kitchen|bathroom|floor|building)\b/.test(t);
+};
+
+/** Is this one of the commands that work anywhere (start over, menu, architect)? */
+export const isGlobalCommand = (text: string): boolean =>
+  text === START_OVER_CHIP || text === MAIN_MENU_CHIP || text === ARCHITECT_CHIP
+  || isCommand(text, COMMANDS.restart) || isCommand(text, COMMANDS.menu) || isCommand(text, COMMANDS.human) || isHumanRequest(text);
 
 /** Main entry point: apply what the visitor sent at `at`, return where to go. */
 export const handle = (b: Brief, at: Route, input: string, now = new Date()): Route => {
@@ -409,6 +422,13 @@ const answerCurrent = (b: Brief, q: Q, choices: Choice[], text: string, now: Dat
       if (q.id === "solicitationDetails") {
         const d = findSolicitation(text) ?? text;
         return set(b, q.id, { value: d, label: d, via: "text", raw: text }, true);
+      }
+      if (q.id === "company") {
+        if (/^(no|none|nope|n\/a|na|not applicable|no company|individual|myself|just me|personal|private)\.?$/i.test(text.trim())) {
+          return set(b, q.id, { value: null, label: "Not provided", via: "text", skipped: true, raw: text }, true);
+        }
+        const name = text.replace(/^(it'?s|it is|we are|we're|the company is|company is|i'?m with|i work for|with)\s+/i, "").replace(/[.\s]+$/, "").slice(0, 160);
+        return name.length > 0 && set(b, q.id, { value: name, label: name, via: "text", raw: text }, true);
       }
       return text.length > 0 && set(b, q.id, { value: text, label: text, via: "text", raw: text }, true);
     }

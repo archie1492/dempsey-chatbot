@@ -107,6 +107,10 @@ export const COMMANDS = {
   restart: ["start over", "restart", "reset", "start again", "begin again"],
   skip: ["skip", "pass", "next", "skip this", "skip it", "rather not say", "prefer not to say", "n/a", "na"],
   notSure: ["not sure", "unsure", "don't know", "dont know", "no idea", "not decided", "undecided", "tbd", "maybe", "not yet"],
+  withdraw: [
+    "don't save", "dont save", "do not save", "don't save this", "stop saving", "keep it private",
+    "delete this conversation", "delete my conversation", "delete the conversation", "delete my data", "forget this",
+  ],
   human: ["human", "person", "architect", "agent", "speak with an architect", "talk to someone"],
 };
 

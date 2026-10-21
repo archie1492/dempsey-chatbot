@@ -1,8 +1,10 @@
+import { useSyncExternalStore } from "react";
 import { useFlow, usePaths } from "react-chatbotify";
-import { STUDIO } from "./conversation/content/copy";
+import { COPY, STUDIO } from "./conversation/content/copy";
 import type { ReviewRow } from "./conversation/engine/summary";
 import type { SlotId } from "./conversation/schema";
 import { editPath, pathFor } from "./session";
+import { sync } from "./sync";
 
 const Arrow = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -134,3 +136,25 @@ export const SendCard = ({ mailto }: { mailto: string }) => (
 export const PortfolioCard = () => (
   <LinkCard href={STUDIO.portfolioUrl} label="View the portfolio" sub="dempsey-design.com/portfolio" />
 );
+
+/** Small link under the welcome message when conversations can be saved. */
+export const PrivacyLink = () => (
+  <a className="dd-privacy-link" href={STUDIO.privacyUrl} target="_blank" rel="noopener noreferrer">
+    {COPY.privacyLink}
+  </a>
+);
+
+/** After Send: options once the studio has it, or the email fallback while it hasn't. */
+export const SentCard = ({ mailto }: { mailto: string }) => {
+  const state = useSyncExternalStore(sync.subscribe, () => sync.lastSubmit);
+  if (state.state === "ok") {
+    return (
+      <div className="dd-contact">
+        <LinkCard href={STUDIO.bookingUrl} label="Book a 30-minute call" sub="Choose a time that suits you" />
+        <LinkCard href={STUDIO.phoneHref} label="Call the studio" sub={STUDIO.phone} />
+      </div>
+    );
+  }
+  if (state.state === "failed") return <SendCard mailto={mailto} />;
+  return null;
+};

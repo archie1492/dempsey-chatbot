@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./chatbot.css";
+import { sync } from "./sync";
 
 /**
  * Dempsey Design chatbot loader.
@@ -8,6 +9,8 @@ import "./chatbot.css";
  * Embed on any page with:
  *   <script src=".../dempsey-chatbot.js" defer></script>
  * The stylesheet is resolved next to the script (override with data-css="...").
+ * Add data-api="https://api.dempsey-design.com" to save conversations (with consent);
+ * without it the assistant works exactly as before and nothing leaves the browser.
  * The bot renders inside a Shadow DOM so site styles and bot styles never collide.
  */
 const HOST_ID = "dempsey-chatbot";
@@ -24,6 +27,7 @@ function resolveCssUrl(): string | null {
 
 function mount() {
   if (document.getElementById(HOST_ID)) return; // never mount twice
+  sync.configure(currentScript?.dataset.api);
 
   const host = document.createElement("div");
   host.id = HOST_ID;

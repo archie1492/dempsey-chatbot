@@ -1,12 +1,13 @@
 {
   "name": "dempsey-chatbot",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Dempsey Design rule-based website assistant (React ChatBotify)",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "test:unit": "esbuild test/engine.test.ts --bundle --platform=node --format=esm --outfile=test/.engine.test.mjs --log-level=warning && node --test test/.engine.test.mjs",
     "test:e2e": "node test/run.mjs",
+    "test:sync": "node test/sync.mjs",
     "preview": "vite preview"
   },
   "author": "",

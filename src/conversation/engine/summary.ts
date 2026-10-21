@@ -50,7 +50,7 @@ export const mailtoHref = (b: Brief): string =>
 export const toRecord = (b: Brief, page = typeof location !== "undefined" ? location.pathname : "") => {
   const answers: Record<string, unknown> = {};
   for (const [id, a] of Object.entries(b.answers)) {
-    if (["contactName", "contactReach", "description", "clientMessage"].includes(id)) continue;
+    if (["contactName", "contactReach", "company", "description", "clientMessage"].includes(id)) continue;
     answers[id] = { value: a!.value, label: a!.label, via: a!.via, ...(a!.skipped ? { skipped: true } : {}) };
   }
   const reach = (b.answers.contactReach?.value ?? {}) as ReachValue;
@@ -75,6 +75,7 @@ export const toRecord = (b: Brief, page = typeof location !== "undefined" ? loca
       name: (b.answers.contactName?.value as string | undefined) ?? "",
       email: reach.email ?? "",
       phone: reach.phone ?? "",
+      company: b.answers.company && !b.answers.company.skipped ? String(b.answers.company.value) : "",
       consent: b.status === "sent",
     },
     handoff: { requested: b.status === "sent" ? "studio" : null, channel: b.status === "sent" ? "email" : null, sentAt: null },

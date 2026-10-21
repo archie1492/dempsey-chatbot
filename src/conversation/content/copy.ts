@@ -13,6 +13,7 @@ export const STUDIO = {
   bookingUrl: "https://calendly.com/ericjdempsey/30min",
   portfolioUrl: "https://www.dempsey-design.com/portfolio",
   contactUrl: "https://www.dempsey-design.com/contact",
+  privacyUrl: "https://www.dempsey-design.com/privacy-policy",
 };
 
 export const COPY = {
@@ -45,6 +46,28 @@ export const COPY = {
   restartNote: "Starting over.",
   editNote: "Updated.",
   skipped: "That's fine.",
+
+  // Saving conversations (only when the studio's server is connected)
+  privacyNotice: "With your permission, conversations here can be saved so the studio can follow up.",
+  privacyLink: "Privacy policy",
+  consentAsk:
+    "Before we go on — may I save this conversation so an architect can follow up, even if you leave before finishing?",
+  consentYes: "Yes, save it",
+  consentNo: "Keep it private",
+  consentSaved: "Thank you. I'll save it as we go.",
+  consentPrivate: "Of course. Nothing is saved unless you choose to send it.",
+  reviewPrivateNote: "Sending shares this summary and our conversation with the studio.",
+  sending: "Sending…",
+  sentSaved: (ref: string) =>
+    `Thank you — it's with the studio. Your reference is ${ref}. An architect will follow up using the details you gave. If you'd rather speak sooner, book a time or call.`,
+  sendFailed:
+    "I couldn't reach the studio's system just now. Your conversation is kept on this device and will be sent automatically when the connection returns — or you can email it now.",
+  withdrawn: "Done. I've deleted what was saved, and nothing more will be saved. We can carry on whenever you like.",
+  withdrawnNothing: "Nothing from this conversation has been saved, and nothing will be unless you send it.",
+  resumeAsk: "Welcome back. Would you like to continue where you left off?",
+  resumeYes: "Continue where I left off",
+  resumeNo: "Start fresh",
+  resumeRecap: "Here's where we were.",
 };
 
 /** Acknowledgements rotate so the same one never appears twice in a row. */

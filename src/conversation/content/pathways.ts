@@ -445,6 +445,11 @@ export const QUESTIONS: Q[] = [
       return name ? `Thank you, ${name}. What's the best email or phone number to reach you?` : "What's the best email or phone number to reach you?";
     },
   },
+  {
+    key: "company", id: "company", stage: "contact", mode: "text",
+    when: (b) => ["commercial", "hospitality", "institutional"].includes(sectorOf(b) ?? ""),
+    prompt: () => "And the company or organization, if there is one? This is optional.",
+  },
 ];
 
 /** The short path for existing clients. */
@@ -511,4 +516,5 @@ export const REVIEW_ROWS: Array<{ id: SlotId; label: string }> = [
   { id: "urgency", label: "Time-sensitive" },
   { id: "contactName", label: "Name" },
   { id: "contactReach", label: "Contact" },
+  { id: "company", label: "Company" },
 ];

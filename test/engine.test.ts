@@ -5,7 +5,7 @@ import {
   classifySector, classifyTopic, findAreas, findCounts, findEmail, findLocation, findMoney,
   findName, findPhone, findSiteStatus, findSolicitation, findSpecial, findTimeline, isClientMessage,
 } from "../src/conversation/engine/extract";
-import { handle, nextRoute, beginEdit } from "../src/conversation/engine/conversation";
+import { handle, nextRoute, beginEdit, isWithdrawRequest } from "../src/conversation/engine/conversation";
 import { reviewRows, toRecord, plainText } from "../src/conversation/engine/summary";
 import { newBrief, type Brief, type Route } from "../src/conversation/schema";
 
@@ -278,4 +278,41 @@ test("nothing is asked twice", () => {
     at = handle(b, at, at.q === "checkpoint" ? "Continue — about a minute" : at.q === "contactName" ? "Lee" : at.q === "contactReach" ? "lee@example.com" : "Skip", NOW);
   }
   assert.deepEqual(at, { to: "review" });
+});
+
+// ── Phase 4: company field and withdraw requests ───────────────────────────
+const toCompany = (sentence: string) => {
+  const b = newBrief();
+  let at: Route = handle(b, { to: "start" }, sentence, NOW);
+  for (let i = 0; i < 30 && at.to === "ask" && at.q !== "company"; i++) {
+    at = handle(b, at, at.q === "checkpoint" ? "Review and send" : at.q === "contactName" ? "Lee Park" : at.q === "contactReach" ? "lee@example.com" : "Skip", NOW);
+  }
+  return { b, at };
+};
+
+test("company: asked (optional) after contact on commercial, hospitality and institutional", () => {
+  for (const s of ["Medical office in Boca, 3,800 sf", "Boutique hotel, 40 keys in Delray", "New fire station for the city of Lake Worth"]) {
+    const { at } = toCompany(s);
+    assert.deepEqual(at, { to: "ask", q: "company" }, s);
+  }
+});
+
+test("company: never asked on residential", () => {
+  const { at } = toCompany("Kitchen renovation in our home in Jupiter");
+  assert.notDeepEqual(at, { to: "ask", q: "company" });
+});
+
+test("company: typed name stored in the record; 'none' counts as not provided", () => {
+  const { b, at } = toCompany("Medical office in Boca, 3,800 sf");
+  assert.deepEqual(handle(b, at, "We're Park Dental Group.", NOW), { to: "review" });
+  assert.equal(toRecord(b).contact.company, "Park Dental Group");
+  const other = toCompany("Medical office in Boca, 3,800 sf");
+  handle(other.b, other.at, "none", NOW);
+  assert.equal(toRecord(other.b).contact.company, "");
+  assert.ok(!("company" in toRecord(other.b).answers));
+});
+
+test("withdraw requests are recognised, project talk is not", () => {
+  for (const t of ["don't save", "Please delete this conversation", "delete my data", "stop saving", "forget this"]) assert.ok(isWithdrawRequest(t), t);
+  for (const t of ["we need to remove a wall", "delete the second floor from the plan", "save money on the kitchen", "Residential"]) assert.ok(!isWithdrawRequest(t), t);
 });

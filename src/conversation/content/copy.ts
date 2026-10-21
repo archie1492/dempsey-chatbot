@@ -158,7 +158,7 @@ export const INFO: Record<string, { label: string; answer: string }> = {
   services: {
     label: "Services",
     answer:
-      "Dempsey Design provides architecture, interior design, master planning and construction administration — from early feasibility through the end of construction — for hospitality, wellness, civic, cultural, commercial and residential clients.",
+      "Dempsey Design offers everything from a focused consultation to full architectural services: architectural consultation and project advisory, test-fits and space planning, feasibility and due diligence, architecture, interior design, existing building and property assessments, FF&E sourcing and procurement, construction documentation and permitting, and construction administration. Many clients start with a consultation or test-fit before deciding how to proceed.",
   },
   phases: {
     label: "Design phases",

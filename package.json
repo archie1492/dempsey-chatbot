@@ -1,0 +1,27 @@
+{
+  "name": "dempsey-chatbot",
+  "version": "0.1.0",
+  "description": "Dempsey Design rule-based website assistant (React ChatBotify)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "react": "18.3.1",
+    "react-chatbotify": "2.5.0",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "playwright": "^1.56.1",
+    "typescript": "^5.6.3",
+    "vite": "^6.4.4"
+  },
+  "private": true,
+  "type": "module"
+}

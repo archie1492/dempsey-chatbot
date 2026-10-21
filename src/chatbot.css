@@ -1,0 +1,108 @@
+/* Dempsey Design chatbot — custom layer (loaded inside the Shadow DOM). */
+
+:host {
+  all: initial;
+  --dd-ink: #1c1c1c;
+  --dd-paper: #fafafa;
+  --dd-line: #e4e4e2;
+  --dd-muted: #7a7a78;
+  --dd-accent: #b9c971;
+  font-family: Montserrat, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dd-root, .dd-root * { box-sizing: border-box; }
+
+/* Header */
+.dd-head { display: flex; align-items: center; gap: 12px; color: #fff; }
+.dd-mark {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.35);
+  font-family: Poppins, Montserrat, sans-serif; font-weight: 600; font-size: 15px;
+  letter-spacing: .02em;
+}
+.dd-head-title {
+  font-family: Poppins, Montserrat, sans-serif;
+  font-size: 15px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2;
+}
+.dd-head-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; color: rgba(255,255,255,.68); letter-spacing: .01em; }
+.dd-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dd-accent); box-shadow: 0 0 0 3px rgba(185,201,113,.18); }
+
+.dd-icon-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: transparent; color: #fff; border: 0; cursor: pointer; padding: 0;
+  transition: background-color .18s ease;
+}
+.dd-icon-btn:hover { background: rgba(255,255,255,.12); }
+.dd-icon-btn:focus-visible, .dd-architect-btn:focus-visible, .dd-card-link:focus-visible {
+  outline: 2px solid var(--dd-accent); outline-offset: 2px;
+}
+
+/* RCB header buttons alignment */
+.rcb-chat-header { align-items: center; gap: 2px; }
+.rcb-close-chat-button { margin-left: 2px; }
+
+/* Footer CTA */
+.rcb-chat-footer { width: 100%; }
+.dd-architect-btn {
+  width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 11px 16px; border-radius: 999px;
+  background: #fff; color: var(--dd-ink);
+  border: 1px solid var(--dd-ink);
+  font: 500 13px/1 Montserrat, sans-serif; letter-spacing: .02em;
+  cursor: pointer; transition: background-color .18s ease, color .18s ease;
+}
+.dd-architect-btn:hover { background: var(--dd-ink); color: #fff; }
+.dd-architect-icon {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--dd-ink); color: #fff;
+  transition: background-color .18s ease, color .18s ease;
+}
+.dd-architect-btn:hover .dd-architect-icon { background: var(--dd-accent); color: var(--dd-ink); }
+
+/* Link cards inside messages */
+.dd-contact { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.dd-card-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 2px 0;
+  padding: 12px 14px;
+  min-width: 240px; max-width: 300px;
+  background: #fff; color: var(--dd-ink);
+  border: 1px solid var(--dd-line); border-radius: 12px;
+  text-decoration: none;
+  transition: border-color .18s ease, transform .18s ease;
+}
+.dd-card-link:hover { border-color: var(--dd-ink); transform: translateY(-1px); }
+.dd-card-label { display: block; font-size: 13.5px; font-weight: 600; }
+.dd-card-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--dd-muted); }
+.dd-card-arrow {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--dd-ink); color: #fff;
+}
+
+/* Component messages sit in the bot column */
+.rcb-bot-message-container .dd-contact,
+.rcb-bot-message-container > .dd-card-link { margin-left: 16px; }
+
+/* Options row */
+.rcb-options-container { gap: 8px; padding-left: 16px; padding-right: 16px; }
+.rcb-options { margin: 0; }
+
+/* Launcher icon colour */
+.dd-launcher-icon { color: #fff; }
+.rcb-toggle-icon { display: grid; place-items: center; }
+
+/* Desktop: keep the floating window clear of the launcher on short screens.
+   (Mobile is full-screen; RCB sizes it from the visual viewport.) */
+@media (min-width: 768px) {
+  .rcb-chat-window { max-height: calc(100vh - 120px); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dd-root * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

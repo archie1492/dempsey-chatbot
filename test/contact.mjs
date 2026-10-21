@@ -17,7 +17,7 @@ const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromi
 const open = makeOpen(browser, "http://localhost:4173/test/harness-api.html");
 const openOffline = makeOpen(browser, "http://localhost:4173/test/harness.html");
 
-const footer = async (b) => { await b.idle(); await b.sr.locator(".dd-architect-btn").click(); await b.page.waitForTimeout(300); await b.idle(); };
+const footer = async (b) => { await b.idle(); await b.page.evaluate(() => document.getElementById("dempsey-chatbot").shadowRoot.activeElement?.blur()); await b.sr.locator(".dd-architect-btn").click(); await b.page.waitForTimeout(300); await b.idle(); };
 const card = (b, label) => b.sr.locator(".dd-card-link", { hasText: label }).last();
 const cardLabels = async (b) => (await b.sr.locator(".dd-contact").last().locator(".dd-card-label").allInnerTexts()).map((s) => s.trim());
 

@@ -28,7 +28,7 @@ await admin.click("[data-set-available='1']");
 ok("dashboard: switched to Available", await waitFor(async () => (await admin.getAttribute("[data-set-available='1']", "aria-pressed")) === "true"));
 ok("header pill shows On", await waitFor(async () => (await admin.textContent("[data-live-state]")) === "On"));
 
-const footer = async (b) => { await b.idle(); await b.sr.locator(".dd-architect-btn").click(); await b.page.waitForTimeout(400); await b.idle(); };
+const footer = async (b) => { await b.idle(); await b.page.evaluate(() => document.getElementById("dempsey-chatbot").shadowRoot.activeElement?.blur()); await b.sr.locator(".dd-architect-btn").click(); await b.page.waitForTimeout(400); await b.idle(); };
 const card = (b, label) => b.sr.locator(".dd-card-link", { hasText: label }).last();
 const botTexts = async (b) => (await b.sr.locator(".rcb-bot-message, .dd-live-joined, .dd-live-msg").allInnerTexts()).map((t) => t.trim());
 const lastLabels = async (b) => (await b.sr.locator(".dd-contact").last().locator(".dd-card-label").allInnerTexts()).map((s) => s.trim());

@@ -27,9 +27,18 @@ for (const mobile of [false, true]) {
   await b.say("Boutique hotel, 40 keys in Delray");
   await b.idle();
   ok(`${tag}: conversation works in the panel`, /hotel/i.test(await b.last()), await b.last());
+  // On phones the footer hides while typing (keyboard open); dismiss the keyboard first.
+  await b.page.evaluate(() => document.getElementById("dempsey-chatbot").shadowRoot.activeElement?.blur());
+  ok(`${tag}: footer visible once the keyboard is dismissed`, await b.sr.locator(".dd-architect-btn").isVisible());
   await b.sr.locator(".dd-architect-btn").click();
   await b.idle();
   ok(`${tag}: contact options work in the panel`, (await b.sr.locator(".dd-contact").last().locator(".dd-card-label").count()) === 3);
+  if (mobile) {
+    await b.sr.locator(".rcb-chat-input-textarea").focus();
+    ok("mobile: footer hides while typing, input text is 16px (no iOS zoom)", !(await b.sr.locator(".dd-architect-btn").isVisible())
+      && (await b.sr.locator(".rcb-chat-input-textarea").evaluate((e) => getComputedStyle(e).fontSize)) === "16px");
+    await b.page.evaluate(() => document.getElementById("dempsey-chatbot").shadowRoot.activeElement?.blur());
+  }
   if (!mobile) await b.shot("inline-desktop");
   else await b.shot("inline-mobile");
   await b.page.getByText("Prefer a simple form?").click();

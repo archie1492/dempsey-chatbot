@@ -184,3 +184,24 @@
 @media (max-width: 767px) {
   .dd-inline .rcb-chat-window { height: min(var(--dd-inline-height, 640px), 78vh) !important; }
 }
+
+/* ── Phones and tablets ───────────────────────────────────────────────────
+   iOS zooms the whole page when a text field under 16px is focused, which
+   made the chat look oversized with the keyboard open. 16px prevents that. */
+@media (pointer: coarse) {
+  .rcb-chat-input-textarea { font-size: 16px !important; }
+}
+
+/* Phones: proportions closer to a messaging app — slim header and input
+   bar, so the conversation gets most of the screen. */
+@media (max-width: 767px) {
+  .rcb-chat-header-container { padding: 10px 10px 10px 14px !important; }
+  .dd-head .dd-mark { width: 32px; height: 32px; font-size: 13px; }
+  .dd-head-title { font-size: 13px; }
+  .dd-head-sub { font-size: 11.5px; }
+  .rcb-chat-input { padding: 8px 10px 8px 12px !important; }
+  .rcb-chat-input-textarea { padding: 9px 14px !important; min-height: 0 !important; }
+  .rcb-chat-footer-container { padding: 8px 12px 10px !important; }
+  /* While typing (keyboard open), only the conversation and the input remain. */
+  .dd-root:has(.rcb-chat-input-textarea:focus) .rcb-chat-footer-container { display: none !important; }
+}

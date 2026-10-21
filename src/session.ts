@@ -1,0 +1,23 @@
+// One conversation per page. Holds the brief and hands out unique path names,
+// so spent option chips from earlier steps are disabled by ChatBotify.
+
+import { beginEdit } from "./conversation/engine/conversation";
+import { newBrief, type Route, type SlotId } from "./conversation/schema";
+
+export const session = {
+  brief: newBrief(),
+  seq: 0,
+  /** Route of each path name issued. */
+  routes: new Map<string, Route>(),
+};
+
+export const pathFor = (route: Route): string => {
+  session.seq += 1;
+  const name = `${route.to}:${session.seq}`;
+  session.routes.set(name, route);
+  return name;
+};
+
+export const routeOf = (path: string): Route | undefined => session.routes.get(path);
+
+export const editPath = (id: SlotId): string => pathFor(beginEdit(session.brief, id));

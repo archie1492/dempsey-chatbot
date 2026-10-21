@@ -11,14 +11,42 @@ const MUTED = "#7a7a78";
 const ACCENT = "#b9c971";
 const BODY_FONT = "Montserrat, 'Helvetica Neue', Arial, sans-serif";
 
+const OPTION_BASE = {
+  backgroundColor: "#ffffff",
+  color: INK,
+  border: `1px solid ${INK}`,
+  borderRadius: 999,
+  fontSize: 13,
+  fontWeight: 500,
+  padding: "8px 14px",
+  letterSpacing: ".01em",
+  transition: "background-color .18s ease, color .18s ease",
+} as const;
+
+const SEND_BASE = { backgroundColor: INK, borderRadius: 999, width: 40, height: 40, marginLeft: 8, color: "#fff" } as const;
+
+const LAUNCHER_BASE = {
+    width: 60,
+    height: 60,
+    backgroundImage: "none",
+    backgroundColor: INK,
+    border: `1px solid rgba(255,255,255,.55)`,
+    // A light ring keeps the launcher visible over dark sections of the site.
+    boxShadow: "0 0 0 3px rgba(250,250,250,.9), 0 14px 34px -8px rgba(20,20,20,.45)",
+    bottom: 24,
+    right: 24,
+    color: "#ffffff",
+  } as const;
+
+const PROMPT_BASE = { color: INK, borderColor: LINE, backgroundColor: "#ffffff", fontSize: 12 } as const;
+
 const settings: Settings = {
   general: {
     primaryColor: INK,
     secondaryColor: INK,
     fontFamily: BODY_FONT,
     showFooter: true,
-    embedded: false,
-  },
+    embedded: false, },
   device: { applyMobileOptimizations: true },
   tooltip: { mode: "START", text: "Questions? Ask our assistant" },
   chatButton: { icon: LauncherIcon },
@@ -33,7 +61,7 @@ const settings: Settings = {
   },
   chatInput: {
     enabledPlaceholderText: "Type a message…",
-    disabledPlaceholderText: "Choose an option above",
+    disabledPlaceholderText: "One moment…",
     characterLimit: 400,
     botDelay: 650,
     blockSpam: true,
@@ -98,18 +126,36 @@ const styles: Styles = {
     padding: "10px 14px",
     maxWidth: "78%",
   },
-  botOptionStyle: {
+  botOptionStyle: OPTION_BASE,
+  // ChatBotify replaces (not merges) the base style on hover, so the hover
+  // style repeats it; otherwise the chip changes size under the cursor.
+  botOptionHoveredStyle: { ...OPTION_BASE, backgroundColor: INK, color: "#ffffff" },
+  botCheckboxRowStyle: {
     backgroundColor: "#ffffff",
     color: INK,
-    border: `1px solid ${INK}`,
+    borderColor: LINE,
+    borderWidth: 1,
     borderRadius: 999,
     fontSize: 13,
     fontWeight: 500,
-    padding: "8px 14px",
-    letterSpacing: ".01em",
-    transition: "background-color .18s ease, color .18s ease",
+    minHeight: 36,
+    maxHeight: "none",
+    width: "auto",
+    maxWidth: "88%",
+    paddingRight: 14,
   },
-  botOptionHoveredStyle: { backgroundColor: INK, color: "#ffffff" },
+  botCheckboxNextStyle: {
+    backgroundColor: INK,
+    color: "#ffffff",
+    borderColor: INK,
+    borderWidth: 1,
+    borderRadius: 999,
+    fontSize: 18,
+    minHeight: 36,
+    width: 96,
+  },
+  botCheckMarkStyle: { backgroundColor: "#f0f0ee", color: "transparent", width: 18, height: 18 },
+  botCheckMarkSelectedStyle: { backgroundColor: INK, color: "#ffffff", width: 18, height: 18 },
   chatInputContainerStyle: {
     backgroundColor: "#ffffff",
     borderTop: `1px solid ${LINE}`,
@@ -126,9 +172,9 @@ const styles: Styles = {
   },
   chatInputAreaFocusedStyle: { border: `1px solid ${INK}`, boxShadow: "none", outline: "none" },
   chatInputAreaDisabledStyle: { backgroundColor: "#f0f0ee", color: MUTED },
-  sendButtonStyle: { backgroundColor: INK, borderRadius: 999, width: 40, height: 40, marginLeft: 8, color: "#fff" },
-  sendButtonHoveredStyle: { backgroundColor: "#000" },
-  sendButtonDisabledStyle: { backgroundColor: "#c9c9c6" },
+  sendButtonStyle: SEND_BASE,
+  sendButtonHoveredStyle: { ...SEND_BASE, backgroundColor: "#000" },
+  sendButtonDisabledStyle: { ...SEND_BASE, backgroundColor: "#c9c9c6" },
   sendIconStyle: { width: 18, height: 18, color: "#ffffff" },
   characterLimitStyle: { color: MUTED, fontSize: 11 },
   footerStyle: {
@@ -139,18 +185,8 @@ const styles: Styles = {
     justifyContent: "center",
     alignItems: "center",
   },
-  chatButtonStyle: {
-    width: 60,
-    height: 60,
-    backgroundImage: "none",
-    backgroundColor: INK,
-    border: `1px solid rgba(255,255,255,.14)`,
-    boxShadow: "0 14px 34px -8px rgba(20,20,20,.45)",
-    bottom: 24,
-    right: 24,
-    color: "#ffffff",
-  },
-  chatButtonHoveredStyle: { backgroundColor: "#000000", transform: "translateY(-2px)" },
+  chatButtonStyle: LAUNCHER_BASE,
+  chatButtonHoveredStyle: { ...LAUNCHER_BASE, backgroundColor: "#000000", transform: "translateY(-2px)" },
   chatIconStyle: { color: "#ffffff", width: 26, height: 26 },
   tooltipStyle: {
     backgroundColor: "#ffffff",
@@ -168,8 +204,8 @@ const styles: Styles = {
   closeChatButtonStyle: { backgroundColor: "transparent", borderRadius: 999 },
   closeChatIconStyle: { fill: "#ffffff", stroke: "#ffffff", width: 18, height: 18 },
   rcbTypingIndicatorDotStyle: { backgroundColor: ACCENT },
-  chatMessagePromptStyle: { color: INK, borderColor: LINE, backgroundColor: "#ffffff", fontSize: 12 },
-  chatMessagePromptHoveredStyle: { color: "#ffffff", borderColor: INK, backgroundColor: INK },
+  chatMessagePromptStyle: PROMPT_BASE,
+  chatMessagePromptHoveredStyle: { ...PROMPT_BASE, color: "#ffffff", borderColor: INK, backgroundColor: INK },
 };
 
 export default function App() {

@@ -1,5 +1,8 @@
 import { useFlow, usePaths } from "react-chatbotify";
-import { STUDIO } from "./content";
+import { STUDIO } from "./conversation/content/copy";
+import type { ReviewRow } from "./conversation/engine/summary";
+import type { SlotId } from "./conversation/schema";
+import { editPath, pathFor } from "./session";
 
 const Arrow = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -42,7 +45,7 @@ export const RestartButton = () => {
 export const ArchitectButton = () => {
   const { goToPath } = usePaths();
   return (
-    <button type="button" className="dd-architect-btn" onClick={() => { void goToPath("architect"); }}>
+    <button type="button" className="dd-architect-btn" onClick={() => { void goToPath(pathFor({ to: "architect" })); }}>
       <span className="dd-architect-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="14" height="14">
           <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -90,4 +93,44 @@ export const ContactCard = () => (
     <LinkCard href={`mailto:${STUDIO.email}`} label="Email the studio" sub={STUDIO.email} />
     <LinkCard href={STUDIO.phoneHref} label="Call the studio" sub={STUDIO.phone} />
   </div>
+);
+
+/** Review card: every answer on its own line, each with Edit. */
+export const ReviewCard = ({ rows }: { rows: ReviewRow[] }) => {
+  const { goToPath } = usePaths();
+  return (
+    <div className="dd-review" role="group" aria-label="Summary of your answers">
+      {rows.map((r) => (
+        <div className="dd-review-row" key={r.id}>
+          <div className="dd-review-text">
+            <span className="dd-review-label">{r.label}</span>
+            <span className={`dd-review-value${r.value === "Not provided" ? " dd-muted" : ""}`}>{r.value}</span>
+          </div>
+          {r.editable && (
+            <button
+              type="button"
+              className="dd-review-edit"
+              aria-label={`Edit ${r.label}`}
+              onClick={() => { void goToPath(editPath(r.id as SlotId)); }}
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** After sending: the prefilled email plus the direct options. */
+export const SendCard = ({ mailto }: { mailto: string }) => (
+  <div className="dd-contact">
+    <LinkCard href={mailto} label="Email this summary" sub="Opens your email app, ready to send" />
+    <LinkCard href={STUDIO.bookingUrl} label="Book a 30-minute call" sub="Choose a time that suits you" />
+    <LinkCard href={STUDIO.phoneHref} label="Call the studio" sub={STUDIO.phone} />
+  </div>
+);
+
+export const PortfolioCard = () => (
+  <LinkCard href={STUDIO.portfolioUrl} label="View the portfolio" sub="dempsey-design.com/portfolio" />
 );

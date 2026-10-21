@@ -205,3 +205,9 @@
   /* While typing (keyboard open), only the conversation and the input remain. */
   .dd-root:has(.rcb-chat-input-textarea:focus) .rcb-chat-footer-container { display: none !important; }
 }
+
+/* Send button: centre the arrow exactly (the library offsets it downward
+   without centring it vertically, so it sat high in the circle). */
+.rcb-send-button { align-items: center !important; justify-content: center !important; padding: 0 !important; flex-shrink: 0; }
+.rcb-send-icon { transform: none !important; width: 18px !important; height: 18px !important; display: flex; align-items: center; justify-content: center; }
+.rcb-send-icon svg { display: block; }

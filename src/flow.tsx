@@ -63,18 +63,19 @@ const afterInput = (b: Brief, next: Route): FlowRoute => {
 };
 
 const YES = /\b(yes|yeah|yep|sure|ok|okay|fine|please|save|go ahead)\b/;
-const NO = /\b(no|nope|not|private|don't|dont|rather not)\b/;
+const NO = /\b(no|nope|private|don't|dont|do not|rather not|not now|no thanks)\b/;
+const UNSURE = /\b(not sure|unsure|maybe|don't know|dont know)\b/;
 
 const answerConsent = (b: Brief, next: Route, input: string): FlowRoute => {
   const t = input.toLowerCase();
-  if (input === COPY.consentYes || (YES.test(t) && !NO.test(t))) {
+  if (input === COPY.consentYes || (YES.test(t) && !NO.test(t) && !UNSURE.test(t))) {
     sync.agree(consentText());
     b.notes.push(COPY.consentSaved);
     sync.setRecord(toRecord(b));
     sync.saveResume(b, next);
     return next;
   }
-  if (input === COPY.consentNo || NO.test(t)) {
+  if (input === COPY.consentNo || (NO.test(t) && !UNSURE.test(t))) {
     sync.decline();
     b.notes.push(COPY.consentPrivate);
     return next;

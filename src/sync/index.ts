@@ -368,7 +368,8 @@ class SyncClient {
     try {
       const all = [...this.detached, this.current];
       if (this.resumeCandidate && !all.includes(this.resumeCandidate)) all.push(this.resumeCandidate);
-      const keep = all.filter((c) => c.consent === "yes" || c.submit !== null || c.submittedRef);
+      // Keep unfinished consented conversations and anything still to deliver; drop sent ones once delivered.
+      const keep = all.filter((c) => hasWork(c) || (c.consent === "yes" && !c.submittedRef));
       if (!keep.length) { localStorage.removeItem(STORAGE_KEY); return; }
       const current = this.resumeCandidate?.key ?? this.current.key;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, channels: keep, current }));

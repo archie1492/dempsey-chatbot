@@ -217,6 +217,31 @@ class SyncClient {
     } catch { return false; }
   }
 
+  // ── live chat (Stage B) ──────────────────────────────────────────────────
+  private async liveCall(method: "GET" | "POST", suffix: string, body?: unknown): Promise<{ status: number; data: any }> {
+    const remote = this.current.remote;
+    if (!this.api || !remote) return { status: 0, data: null };
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${this.api}/v1/conversations/${remote.id}/live${suffix}`, {
+        method, mode: "cors", credentials: "omit", signal: ctrl.signal,
+        headers: { "X-Chat-Token": remote.token, ...(method === "POST" ? { "Content-Type": "application/json" } : {}) },
+        ...(method === "POST" ? { body: JSON.stringify(body ?? {}) } : {}),
+      });
+      return { status: res.status, data: res.status === 204 ? null : await res.json().catch(() => null) };
+    } catch {
+      return { status: 0, data: null };
+    } finally {
+      window.clearTimeout(t);
+    }
+  }
+
+  liveRequest() { return this.liveCall("POST", ""); }
+  livePoll(after: number) { return this.liveCall("GET", `?after=${after}`); }
+  liveSend(text: string) { return this.liveCall("POST", "/messages", { body: text.slice(0, 2000) }); }
+  liveEnd() { return this.liveCall("POST", "/end", {}); }
+
   decline() {
     this.current.consent = "private";
     this.persist();

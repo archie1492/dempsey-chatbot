@@ -175,7 +175,7 @@ export const ActionCard = ({ label, sub, onClick, muted }: { label: string; sub:
 export const contactActions = {
   whatsapp: (): string | null => null,
   email: (): string | null => null,
-  live: (): string | null => null,
+  live: (_available: boolean): string | null => null,
   phone: (): void => {},
 };
 
@@ -205,7 +205,7 @@ export const ContactOptions = ({ hideLive = false }: { hideLive?: boolean }) => 
           label={live ? "Connect with a live agent" : "Live Chat — Currently Unavailable"}
           sub={live ? "Chat with the studio here" : "See other ways to reach us"}
           muted={!live}
-          onClick={() => go(contactActions.live())}
+          onClick={() => go(contactActions.live(!!live))}
         />
       )}
     </div>

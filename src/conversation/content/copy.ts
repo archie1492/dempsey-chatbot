@@ -91,6 +91,19 @@ export const COPY = {
   noteAdded: (ref: string) => `Added to ${ref}. The studio has it.`,
   noteFailed: "I couldn't add that just now. You can email the studio directly at info@dempsey-design.com.",
   liveUnavailable: "No one from the studio is available for live chat right now. You can reach us here instead:",
+  liveEmailAsk: "So we can reply if we get disconnected, would you like to leave an email? It's optional.",
+  liveWaiting: "We're checking whether someone from the studio is available. Please stay on this page while we connect you.",
+  liveJoined: (name: string | null) =>
+    name && name !== "Dempsey Design" ? `${name} from Dempsey Design has joined the chat.` : "Someone from Dempsey Design has joined the chat.",
+  liveMissed:
+    "No one from the studio could join just now. We have your request, and you can continue on WhatsApp or by email — the studio will see everything you've shared.",
+  liveNoReply: "If you need to go, WhatsApp or email will keep this conversation going.",
+  liveEndedStudio: (name: string | null) => `${name && name !== "Dempsey Design" ? name : "The studio"} has ended the chat. It's saved with your inquiry.`,
+  liveEndedVisitor: "You've ended the chat. It's saved with your inquiry.",
+  liveEndedSystem: "This chat has ended. It's saved with your inquiry.",
+  liveAfter: "Anything else? You can reach the studio here:",
+  liveSendFailed: "That message didn't go through. Please check your connection and try again.",
+  liveUnavailableNow: "Live chat has just become unavailable. You can reach the studio here instead:",
   optional: "Skip",
 };
 

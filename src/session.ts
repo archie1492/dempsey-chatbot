@@ -5,7 +5,10 @@ import { beginEdit } from "./conversation/engine/conversation";
 import { newBrief, type Route, type SlotId } from "./conversation/schema";
 
 /** Engine routes plus the two steps that only exist when saving is switched on. */
-export type ContactStep = "wa" | "wa-email" | "wa-preview" | "wa-done" | "em-name" | "em-email" | "em-note" | "em-already" | "note" | "live";
+export type ContactStep =
+  | "wa" | "wa-email" | "wa-preview" | "wa-done"
+  | "em-name" | "em-email" | "em-note" | "em-already" | "note"
+  | "live" | "live-consent" | "live-email" | "live-wait" | "live-chat" | "live-note" | "live-missed" | "live-ended";
 export type FlowRoute = Route | { to: "consent"; next: Route } | { to: "resume" } | { to: "contact"; step: ContactStep };
 
 export const session = {

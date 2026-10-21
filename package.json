@@ -9,6 +9,7 @@
     "test:e2e": "node test/run.mjs",
     "test:sync": "node test/sync.mjs",
     "test:contact": "node test/contact.mjs",
+    "test:live": "node test/live.mjs",
     "preview": "vite preview"
   },
   "author": "",

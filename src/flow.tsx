@@ -19,6 +19,7 @@ import {
   contactActions, whatsappStore,
 } from "./components";
 import { pathFor, routeOf, session, type ContactStep, type FlowRoute } from "./session";
+import { LiveBridge, endLive, live, sendLive, startLive } from "./live";
 import { sync } from "./sync";
 
 const saving = () => sync.enabled;
@@ -139,7 +140,19 @@ const emStart = (b: Brief): FlowRoute => {
   return { to: "review" };
 };
 
-const liveStart = (): FlowRoute => step("live"); // Stage B connects live chat here
+const liveStart = (available = false): FlowRoute => {
+  if (!saving() || !available) return step("live");
+  if (sync.consent !== "yes" && !sync.submittedRef) return step("live-consent");
+  return liveAfterConsent(session.brief);
+};
+
+const liveAfterConsent = (b: Brief): FlowRoute => {
+  if (!reachOf(b).email && !b.shown.includes("live-email")) {
+    b.shown.push("live-email");
+    return step("live-email");
+  }
+  return step("live-wait");
+};
 
 contactActions.whatsapp = () => {
   sync.log("visitor", "choice", "Continue on WhatsApp", "contact");
@@ -150,9 +163,9 @@ contactActions.email = () => {
   sync.channelEvent("email", "selected");
   return pathFor(emStart(session.brief));
 };
-contactActions.live = () => {
+contactActions.live = (available: boolean) => {
   sync.log("visitor", "choice", "Connect with a live agent", "contact");
-  return pathFor(liveStart());
+  return pathFor(liveStart(available));
 };
 contactActions.phone = () => {
   sync.log("visitor", "choice", "Call the studio", "contact");
@@ -163,8 +176,31 @@ const isBack = (t: string) => t === COPY.back || /^(back|go back|cancel)$/i.test
 const isSkip = (t: string) => t === COPY.optional || /^(skip|no|no thanks|none|not now|n\/a)\.?$/i.test(t);
 
 const answerContact = async (b: Brief, s: ContactStep, input: string): Promise<FlowRoute> => {
+  // During live chat everything typed goes to the studio, except "end chat".
+  if ((s === "live-wait" || s === "live-chat") && live.active) {
+    if (/^(end( the)? chat|end|leave|stop chat|bye)\.?$/i.test(input)) {
+      await endLive();
+      b.notes.push(COPY.liveEndedVisitor);
+      return step("live-ended");
+    }
+    if (!(await sendLive(input))) return step("live-note");
+    return step("live-chat");
+  }
   if (isGlobalCommand(input)) return afterInput(b, handle(b, { to: "menu" }, input));
   switch (s) {
+    case "live-consent":
+      if (input === COPY.handoffContinue || /\b(yes|ok|okay|sure|continue|go ahead)\b/i.test(input)) {
+        sync.agreeHandoff(handoffText());
+        syncRecord(b);
+        return liveAfterConsent(b);
+      }
+      return { to: "architect" };
+    case "live-email": {
+      if (isSkip(input)) return step("live-wait");
+      const email = findEmail(input);
+      if (email) { setReach(b, { ...reachOf(b), email }, input); syncRecord(b); }
+      return step("live-wait");
+    }
     case "wa":
       if (input === COPY.handoffContinue || /\b(yes|ok|okay|sure|continue|go ahead)\b/i.test(input)) {
         sync.agreeHandoff(handoffText());
@@ -243,7 +279,8 @@ const routeInput = (b: Brief, at: FlowRoute) => async (p: Params) => {
     b.notes.push(had ? COPY.withdrawn : COPY.withdrawnNothing);
     return pathFor(at.to === "start" || at.to === "resume" || at.to === "sent" || at.to === "contact" ? { to: "menu" } : at);
   }
-  logVisitor(input, at);
+  const inLive = at.to === "contact" && ["live-wait", "live-chat", "live-note"].includes(at.step) && live.active;
+  if (!inLive) logVisitor(input, at); // live messages are saved by the live-chat endpoint instead
   if (at.to === "consent") return pathFor(answerConsent(b, at.next, input));
   if (at.to === "resume") return pathFor(answerResume(b, input));
   if (at.to === "contact") return pathFor(await answerContact(b, at.step, input));
@@ -403,6 +440,34 @@ const contactBlock = (b: Brief, s: ContactStep, path: Block["path"]): Block => {
         message: () => shown(say(b, COPY.liveUnavailable), s),
         component: <ContactOptions hideLive />,
         options: offer([MAIN_MENU_CHIP]),
+        path,
+      };
+    case "live-consent":
+      return ask(() => COPY.handoffNotice, [COPY.handoffContinue, COPY.back]);
+    case "live-email":
+      return ask(() => COPY.liveEmailAsk, [COPY.optional]);
+    case "live-wait":
+      return {
+        message: async () => shown(say(b, await startLive()), s),
+        component: <LiveBridge />,
+        path,
+      };
+    case "live-chat":
+      return { path }; // no assistant message: the conversation is with a person now
+    case "live-note":
+      return { message: () => COPY.liveSendFailed, path };
+    case "live-missed":
+      return {
+        message: () => shown(say(b, COPY.liveMissed), s),
+        component: <ContactOptions hideLive />,
+        options: offer([MAIN_MENU_CHIP]),
+        path,
+      };
+    case "live-ended":
+      return {
+        message: () => shown(say(b, COPY.liveAfter), s),
+        component: <ContactOptions hideLive />,
+        options: offer([MAIN_MENU_CHIP, START_OVER_CHIP]),
         path,
       };
   }

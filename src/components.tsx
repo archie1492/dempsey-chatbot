@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useFlow, usePaths } from "react-chatbotify";
 import { COPY, STUDIO } from "./conversation/content/copy";
 import type { ReviewRow } from "./conversation/engine/summary";
@@ -19,7 +19,7 @@ export const HeaderTitle = () => (
     <div>
       <div className="dd-head-title">Dempsey Design</div>
       <div className="dd-head-sub">
-        <span className="dd-dot" /> Automated assistant
+        <span className="dd-dot" /> Virtual assistant
       </div>
     </div>
   </div>
@@ -72,12 +72,13 @@ export const SendIcon = () => (
   </svg>
 );
 
-export const LinkCard = ({ href, label, sub }: { href: string; label: string; sub: string }) => {
+export const LinkCard = ({ href, label, sub, onClick }: { href: string; label: string; sub: string; onClick?: () => void }) => {
   const external = href.startsWith("http");
   return (
   <a
     className="dd-card-link"
     href={href}
+    onClick={onClick}
     {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
   >
     <span>
@@ -157,4 +158,86 @@ export const SentCard = ({ mailto }: { mailto: string }) => {
   }
   if (state.state === "failed") return <SendCard mailto={mailto} />;
   return null;
+};
+
+/** Same look as LinkCard, for options that continue inside the chat. */
+export const ActionCard = ({ label, sub, onClick, muted }: { label: string; sub: string; onClick: () => void; muted?: boolean }) => (
+  <button type="button" className={`dd-card-link dd-card-button${muted ? " dd-card-muted" : ""}`} onClick={onClick}>
+    <span>
+      <span className="dd-card-label">{label}</span>
+      <span className="dd-card-sub">{sub}</span>
+    </span>
+    <span className="dd-card-arrow"><Arrow /></span>
+  </button>
+);
+
+/** Handlers for the contact options, set by flow.tsx (keeps conversation logic out of the UI). Each returns the path to go to. */
+export const contactActions = {
+  whatsapp: (): string | null => null,
+  email: (): string | null => null,
+  live: (): string | null => null,
+  phone: (): void => {},
+};
+
+/** The four ways to reach the studio. */
+export const ContactOptions = ({ hideLive = false }: { hideLive?: boolean }) => {
+  const [live, setLive] = useState<boolean | null>(null);
+  useEffect(() => {
+    let on = true;
+    if (!hideLive) void sync.liveAvailable().then((v) => { if (on) setLive(v); });
+    return () => { on = false; };
+  }, [hideLive]);
+  const { goToPath } = usePaths();
+  const go = (p: string | null) => { if (p) void goToPath(p); };
+  const ref = sync.reference;
+  return (
+    <div className="dd-contact">
+      <ActionCard label="Continue on WhatsApp" sub="Review a short message, then open WhatsApp" onClick={() => go(contactActions.whatsapp())} />
+      <ActionCard label="Email the studio" sub="Send your inquiry from here" onClick={() => go(contactActions.email())} />
+      <LinkCard
+        href={STUDIO.phoneHref}
+        label="Call the studio"
+        sub={ref ? `${STUDIO.phone} · mention ${ref}` : STUDIO.phone}
+        onClick={() => contactActions.phone()}
+      />
+      {!hideLive && (
+        <ActionCard
+          label={live ? "Connect with a live agent" : "Live Chat — Currently Unavailable"}
+          sub={live ? "Chat with the studio here" : "See other ways to reach us"}
+          muted={!live}
+          onClick={() => go(contactActions.live())}
+        />
+      )}
+    </div>
+  );
+};
+
+/** Booking link, kept for the places it fits (fees, phases, after sending). */
+export const BookingCard = () => (
+  <LinkCard href={STUDIO.bookingUrl} label="Book a 30-minute call" sub="Choose a time that suits you" onClick={() => sync.channelEvent("booking", "selected")} />
+);
+
+/** The prepared WhatsApp message, shown for review before WhatsApp opens. */
+export const whatsappStore = {
+  state: null as null | { text: string; href: string },
+  listeners: new Set<() => void>(),
+  set(v: { text: string; href: string } | null) { this.state = v; this.listeners.forEach((f) => f()); },
+  subscribe(f: () => void) { whatsappStore.listeners.add(f); return () => { whatsappStore.listeners.delete(f); }; },
+};
+
+export const WhatsAppCard = ({ onOpen }: { onOpen: () => string | null }) => {
+  const state = useSyncExternalStore((f) => whatsappStore.subscribe(f), () => whatsappStore.state);
+  const { goToPath } = usePaths();
+  if (!state) return null;
+  return (
+    <div className="dd-contact">
+      <div className="dd-wa-preview" aria-label="Message to send on WhatsApp">{state.text}</div>
+      <LinkCard
+        href={state.href}
+        label="Open WhatsApp"
+        sub="Opens the app or WhatsApp Web"
+        onClick={() => { const p = onOpen(); if (p) window.setTimeout(() => { void goToPath(p); }, 400); }}
+      />
+    </div>
+  );
 };

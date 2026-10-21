@@ -10,10 +10,15 @@ import {
   checkboxesFor, chipsFor, entryChips, generalChips, handle, hasProjectData, infoFollowups,
   infoMenuChips, isGlobalCommand, isWithdrawRequest, nextRoute, promptFor, resetBrief, say,
 } from "./conversation/engine/conversation";
-import { mailtoHref, reviewRows, subjectLine, toRecord } from "./conversation/engine/summary";
+import { mailtoHref, reviewRows, subjectLine, toRecord, whatsappHref, whatsappText } from "./conversation/engine/summary";
+import { cleanName, findEmail } from "./conversation/engine/extract";
+import { STUDIO } from "./conversation/content/copy";
 import type { Brief, ReachValue, Route } from "./conversation/schema";
-import { ContactCard, PortfolioCard, PrivacyLink, ReviewCard, SendCard, SentCard } from "./components";
-import { pathFor, routeOf, session, type FlowRoute } from "./session";
+import {
+  BookingCard, ContactOptions, PortfolioCard, PrivacyLink, ReviewCard, SendCard, SentCard, WhatsAppCard,
+  contactActions, whatsappStore,
+} from "./components";
+import { pathFor, routeOf, session, type ContactStep, type FlowRoute } from "./session";
 import { sync } from "./sync";
 
 const saving = () => sync.enabled;
@@ -24,7 +29,7 @@ let offeredBoxes = false;
 const offer = (chips: string[]) => { offered = new Set(chips); return chips; };
 const offerBoxes = (items: string[]) => { offeredBoxes = items.length > 0; return items; };
 
-const stepOf = (r: FlowRoute) => (r.to === "ask" ? r.q : r.to === "info" ? `info:${r.topic}` : r.to);
+const stepOf = (r: FlowRoute) => (r.to === "ask" ? r.q : r.to === "info" ? `info:${r.topic}` : r.to === "contact" ? r.step : r.to);
 
 /** Record an assistant message as it is shown. */
 const shown = (text: string, step: string) => { sync.log("assistant", "text", text, step); return text; };
@@ -105,17 +110,147 @@ const answerResume = (b: Brief, input: string): FlowRoute => {
   return { to: "start" };
 };
 
+// ── contact options: WhatsApp, email, phone, live chat ─────────────────────
+const step = (s: ContactStep): FlowRoute => ({ to: "contact", step: s });
+const reachOf = (b: Brief) => (b.answers.contactReach?.value ?? {}) as ReachValue;
+const setReach = (b: Brief, r: ReachValue, raw: string) => {
+  b.answers.contactReach = { value: r, label: [r.email, r.phone].filter(Boolean).join(" · "), via: "text", raw };
+};
+const handoffText = () => `${COPY.privacyNotice}\n${COPY.handoffNotice}`;
+const syncRecord = (b: Brief) => { if (saving() && b.kind) sync.setRecord(toRecord(b)); };
+
+const waStart = (b: Brief): FlowRoute =>
+  saving() && sync.consent !== "yes" && !sync.submittedRef ? step("wa") : waAfterConsent(b);
+
+const waAfterConsent = (b: Brief): FlowRoute => {
+  if (saving() && !reachOf(b).email && !b.shown.includes("wa-email")) {
+    b.shown.push("wa-email");
+    return step("wa-email");
+  }
+  return step("wa-preview");
+};
+
+const emStart = (b: Brief): FlowRoute => {
+  if (sync.submittedRef) return step("em-already");
+  b.wrapUp = true;
+  if (!b.answers.contactName || b.answers.contactName.skipped) return step("em-name");
+  if (!reachOf(b).email) return step("em-email");
+  if (!b.shown.includes("em-note")) return step("em-note");
+  return { to: "review" };
+};
+
+const liveStart = (): FlowRoute => step("live"); // Stage B connects live chat here
+
+contactActions.whatsapp = () => {
+  sync.log("visitor", "choice", "Continue on WhatsApp", "contact");
+  return pathFor(waStart(session.brief));
+};
+contactActions.email = () => {
+  sync.log("visitor", "choice", "Email the studio", "contact");
+  sync.channelEvent("email", "selected");
+  return pathFor(emStart(session.brief));
+};
+contactActions.live = () => {
+  sync.log("visitor", "choice", "Connect with a live agent", "contact");
+  return pathFor(liveStart());
+};
+contactActions.phone = () => {
+  sync.log("visitor", "choice", "Call the studio", "contact");
+  sync.channelEvent("phone", "selected");
+};
+
+const isBack = (t: string) => t === COPY.back || /^(back|go back|cancel)$/i.test(t);
+const isSkip = (t: string) => t === COPY.optional || /^(skip|no|no thanks|none|not now|n\/a)\.?$/i.test(t);
+
+const answerContact = async (b: Brief, s: ContactStep, input: string): Promise<FlowRoute> => {
+  if (isGlobalCommand(input)) return afterInput(b, handle(b, { to: "menu" }, input));
+  switch (s) {
+    case "wa":
+      if (input === COPY.handoffContinue || /\b(yes|ok|okay|sure|continue|go ahead)\b/i.test(input)) {
+        sync.agreeHandoff(handoffText());
+        syncRecord(b);
+        return waAfterConsent(b);
+      }
+      return { to: "architect" };
+    case "wa-email": {
+      if (isSkip(input)) return step("wa-preview");
+      const email = findEmail(input);
+      if (email) {
+        setReach(b, { ...reachOf(b), email }, input);
+        syncRecord(b);
+        return step("wa-preview");
+      }
+      if (!b.shown.includes("wa-email-retry")) {
+        b.shown.push("wa-email-retry");
+        b.notes.push(COPY.emailInvalid);
+        return step("wa-email");
+      }
+      return step("wa-preview");
+    }
+    case "em-name": {
+      if (isBack(input)) return { to: "architect" };
+      const name = cleanName(input);
+      if (!name) { b.notes.push(COPY.nameRequired); return step("em-name"); }
+      b.answers.contactName = { value: name, label: name, via: "text", raw: input };
+      syncRecord(b);
+      return emStart(b);
+    }
+    case "em-email": {
+      if (isBack(input)) return { to: "architect" };
+      const email = findEmail(input);
+      if (!email) { b.notes.push(COPY.emailInvalid); return step("em-email"); }
+      setReach(b, { ...reachOf(b), email }, input);
+      syncRecord(b);
+      return emStart(b);
+    }
+    case "em-note":
+      b.shown.push("em-note");
+      if (!isSkip(input) && input.length > 1) b.answers.note = { value: input, label: input.slice(0, 2000), via: "text", raw: input };
+      syncRecord(b);
+      return emStart(b);
+    case "em-already":
+      if (input === COPY.addNote || /\b(yes|add|note)\b/i.test(input)) return step("note");
+      return afterInput(b, handle(b, { to: "architect" }, input));
+    case "note": {
+      if (isBack(input)) return { to: "menu" };
+      const ref = sync.submittedRef;
+      const ok = await sync.note(input);
+      b.notes.push(ok && ref ? COPY.noteAdded(ref) : COPY.noteFailed);
+      return { to: "menu" };
+    }
+    case "wa-preview":
+      if (isBack(input)) return { to: "architect" };
+      return afterInput(b, handle(b, { to: "architect" }, input));
+    default:
+      return afterInput(b, handle(b, { to: "architect" }, input));
+  }
+};
+
+/** Typed shortcuts for the contact options, honoured outside questions. */
+const shortcut = (b: Brief, input: string): FlowRoute | null => {
+  const t = input.toLowerCase().replace(/[.!?]+$/, "").trim();
+  if (/^(continue on |use )?whatsapp$/.test(t)) return waStart(b);
+  if (/^(email( the studio)?|send an email)$/.test(t)) return emStart(b);
+  if (/^(live chat|live agent|connect with a live agent)$/.test(t)) return liveStart();
+  return null;
+};
+
 /** Every visitor input passes through here. */
-const routeInput = (b: Brief, at: FlowRoute) => (p: Params) => {
+const routeInput = (b: Brief, at: FlowRoute) => async (p: Params) => {
   const input = (p.userInput ?? "").trim();
   if (saving() && at.to !== "consent" && isWithdrawRequest(input)) {
     const had = sync.withdraw();
     b.notes.push(had ? COPY.withdrawn : COPY.withdrawnNothing);
-    return pathFor(at.to === "start" || at.to === "resume" || at.to === "sent" ? { to: "menu" } : at);
+    return pathFor(at.to === "start" || at.to === "resume" || at.to === "sent" || at.to === "contact" ? { to: "menu" } : at);
   }
   logVisitor(input, at);
   if (at.to === "consent") return pathFor(answerConsent(b, at.next, input));
   if (at.to === "resume") return pathFor(answerResume(b, input));
+  if (at.to === "contact") return pathFor(await answerContact(b, at.step, input));
+  if (at.to !== "ask") {
+    const sc = shortcut(b, input);
+    if (sc) return pathFor(sc);
+  }
   return pathFor(afterInput(b, handle(b, at, input)));
 };
 
@@ -157,6 +292,7 @@ const blockFor = (route: FlowRoute): Block => {
           return text;
         },
         ...(route.topic === "portfolio" ? { component: <PortfolioCard /> } : {}),
+        ...(["fees", "phases", "booking"].includes(route.topic) ? { component: <BookingCard /> } : {}),
         options: offer(infoFollowups()),
         path,
       };
@@ -204,19 +340,71 @@ const blockFor = (route: FlowRoute): Block => {
         options: offer([START_OVER_CHIP, MAIN_MENU_CHIP]),
         path,
       };
+    case "contact":
+      return contactBlock(b, route.step, path);
     case "architect": {
       const withBrief = hasProjectData(b) && b.status !== "sent";
       return {
         message: () => {
           const text = shown(say(b, withBrief ? COPY.architectWithBrief : COPY.architect), "architect");
-          card("[Contact options shown: book a call, email, phone]", "architect");
+          card("[Contact options shown: WhatsApp, email, phone, live chat]", "architect");
           return text;
         },
-        component: <ContactCard />,
+        component: <ContactOptions />,
         options: () => offer(withBrief ? [REVIEW_SHARED_CHIP, MAIN_MENU_CHIP] : [MAIN_MENU_CHIP]),
         path,
       };
     }
+  }
+};
+
+const contactBlock = (b: Brief, s: ContactStep, path: Block["path"]): Block => {
+  const ask = (text: () => string, options: string[]): Block => ({ message: () => shown(say(b, text()), s), options: offer(options), path });
+  switch (s) {
+    case "wa":
+      return ask(() => COPY.handoffNotice, [COPY.handoffContinue, COPY.back]);
+    case "wa-email":
+      return ask(() => COPY.waEmailAsk, [COPY.optional]);
+    case "wa-preview":
+      return {
+        message: async () => {
+          whatsappStore.set(null);
+          const ref = saving() ? await sync.ensureSaved() : null;
+          const text = whatsappText(b, ref);
+          whatsappStore.set({ text, href: whatsappHref(STUDIO.whatsapp, text) });
+          const msg = shown(say(b, saving() && !ref ? `${COPY.waPreview} ${COPY.waOffline}` : COPY.waPreview), s);
+          card(`[WhatsApp message prepared]\n${text}`, s);
+          return msg;
+        },
+        component: () => (
+          <WhatsAppCard onOpen={() => {
+            sync.log("visitor", "choice", "Open WhatsApp", s);
+            sync.channelEvent("whatsapp", "initiated");
+            return pathFor(step("wa-done"));
+          }} />
+        ),
+        options: offer([COPY.back]),
+        path,
+      };
+    case "wa-done":
+      return ask(() => COPY.waDone(sync.reference), [MAIN_MENU_CHIP, START_OVER_CHIP]);
+    case "em-name":
+      return ask(() => COPY.emailName, [COPY.back]);
+    case "em-email":
+      return ask(() => COPY.emailAddress(String(b.answers.contactName?.value ?? "").split(" ")[0]), [COPY.back]);
+    case "em-note":
+      return ask(() => COPY.emailNote, [COPY.optional]);
+    case "em-already":
+      return ask(() => COPY.emailAlready(sync.submittedRef ?? ""), [COPY.addNote, MAIN_MENU_CHIP]);
+    case "note":
+      return ask(() => COPY.noteAsk, [COPY.back]);
+    case "live":
+      return {
+        message: () => shown(say(b, COPY.liveUnavailable), s),
+        component: <ContactOptions hideLive />,
+        options: offer([MAIN_MENU_CHIP]),
+        path,
+      };
   }
 };
 

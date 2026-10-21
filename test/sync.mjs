@@ -249,7 +249,7 @@ sql("DELETE FROM conversations;");
   await b2.page.close();
   const b3 = await open({ ctx });
   await b3.tap("Start fresh");
-  ok("start fresh: normal welcome", /studio's automated assistant/.test(await b3.last()));
+  ok("start fresh: normal welcome", /studio's virtual assistant/.test(await b3.last()));
   ok("resume: no JS errors", b.errors.length === 0 && b2.errors.length === 0 && b3.errors.length === 0, [...b.errors, ...b2.errors, ...b3.errors].join(" | "));
   await ctx.close();
 }

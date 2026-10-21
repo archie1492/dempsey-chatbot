@@ -69,7 +69,7 @@ const count = (text, needle) => text.split(needle).length - 1;
 // ── Residential: one typed sentence, checkpoint, optional, review, edit, send ──
 {
   const b = await open({ width: 1366, height: 900 }, false);
-  ok("welcome identifies the automated assistant", (await b.last()).includes("studio's automated assistant"));
+  ok("welcome identifies the virtual assistant", (await b.last()).includes("studio's virtual assistant"));
   await b.say("We just bought a 1960s house in Jupiter and want to add a second floor, maybe 1,200 sf.");
   let msg = await b.last();
   ok("residential: acknowledges what was typed", /addition in Jupiter/.test(msg) && /South Florida/.test(msg), msg);
@@ -178,7 +178,7 @@ const count = (text, needle) => text.split(needle).length - 1;
   const review = await b.sr.locator(".dd-review").last().innerText();
   ok("client: message review", /Lake Worth residence/.test(review) && /site visit/.test(review), review);
   await b.tap("Start over");
-  ok("start over: welcome again", /studio's automated assistant/.test(await b.last()));
+  ok("start over: welcome again", /studio's virtual assistant/.test(await b.last()));
   await b.say("Do you work in Broward?");
   ok("general: areas answer", /licensed in Florida, Arkansas, New York/.test(await b.last()));
   await b.tap("Ask something else");

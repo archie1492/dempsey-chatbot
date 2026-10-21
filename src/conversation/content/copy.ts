@@ -3,12 +3,14 @@
 //
 // Voice: calm, precise, brief. One or two sentences per message, the question
 // last. No exclamation marks, no "Great question". The assistant is "the
-// studio's automated assistant" — never an architect, a person or an AI.
+// studio's virtual assistant" — never an architect, a person or an AI.
 
 export const STUDIO = {
   name: "Dempsey Design",
   phone: "561-889-0348",
   phoneHref: "tel:+15618890348",
+  /** WhatsApp Business number, digits only with country code (used in wa.me links). */
+  whatsapp: "15618890348",
   email: "info@dempsey-design.com",
   bookingUrl: "https://calendly.com/ericjdempsey/30min",
   portfolioUrl: "https://www.dempsey-design.com/portfolio",
@@ -18,7 +20,7 @@ export const STUDIO = {
 
 export const COPY = {
   welcome:
-    "Welcome to Dempsey Design. I'm the studio's automated assistant. Tell me a little about your project in your own words, or choose where to start.",
+    "Welcome to Dempsey Design. I'm the studio's virtual assistant. Tell me a little about your project in your own words, or choose where to start.",
   menu: "What would you like to do?",
   generalMenu: "Of course. Are you an existing client, or do you have a general question?",
   infoMenu: "What would you like to know?",
@@ -31,13 +33,14 @@ export const COPY = {
     "That's enough for an architect to begin the conversation. I can send it now, or ask a few short questions that help us prepare.",
   checkpointContinue: "Continue — about a minute",
   checkpointFast: "Review and send",
+  checkpointContact: "Contact the studio now",
   review: "Here's what I have. Edit anything that isn't right, then send it to the studio.",
   reviewClient: "Here's the message for the studio. Edit anything that isn't right, then send it.",
   sent:
     "Thank you. To deliver it, choose Email this summary — your email app opens with everything filled in. If you'd rather speak now, book a time or call the studio.",
-  architect: "Of course. Choose whichever is easiest and an architect will take it from there:",
+  architect: "Of course. Choose whichever suits you and an architect will take it from there:",
   architectWithBrief:
-    "Of course. You can send what you've shared so far, or contact an architect directly:",
+    "Of course. Choose how you'd like to reach the studio — what you've shared so far goes with it:",
   reachInvalid:
     "That doesn't look like an email address or a phone number. Could you check it?",
   reachRequired:
@@ -68,6 +71,27 @@ export const COPY = {
   resumeYes: "Continue where I left off",
   resumeNo: "Start fresh",
   resumeRecap: "Here's where we were.",
+
+  // Contact options (Phase 5)
+  handoffNotice: "To hand this over, I'll save what you've shared with the studio under a reference number.",
+  handoffContinue: "Continue",
+  back: "Back",
+  waEmailAsk: "Would you like to leave an email too, in case WhatsApp doesn't connect? It's optional.",
+  waPreview: "Here's the message I've prepared. You can still edit it in WhatsApp before you send it.",
+  waOffline: "I couldn't reach the studio's system just now, so it goes without a reference number — what you've shared is saved as soon as the connection returns.",
+  waDone: (ref: string | null) =>
+    `WhatsApp should now be open with your message ready. It reaches the studio once you press send there.${ref ? ` Your reference is ${ref}.` : ""}`,
+  emailName: "Who should the studio reply to?",
+  emailAddress: (first: string) => `Thank you${first ? `, ${first}` : ""}. What email address should the studio reply to?`,
+  emailInvalid: "That doesn't look like an email address. Could you check it?",
+  emailNote: "Anything you'd like to add for the architect? This is optional.",
+  emailAlready: (ref: string) => `This is already with the studio — your reference is ${ref}. Would you like to add a note?`,
+  addNote: "Add a note",
+  noteAsk: "What would you like to add?",
+  noteAdded: (ref: string) => `Added to ${ref}. The studio has it.`,
+  noteFailed: "I couldn't add that just now. You can email the studio directly at info@dempsey-design.com.",
+  liveUnavailable: "No one from the studio is available for live chat right now. You can reach us here instead:",
+  optional: "Skip",
 };
 
 /** Acknowledgements rotate so the same one never appears twice in a row. */
@@ -121,6 +145,10 @@ export const INFO: Record<string, { label: string; answer: string }> = {
   portfolio: {
     label: "Portfolio",
     answer: "Selected hospitality, wellness, civic, cultural, commercial and residential work is on the portfolio page.",
+  },
+  booking: {
+    label: "Book a call",
+    answer: "You can book a 30-minute call with an architect at a time that suits you:",
   },
   vendors: {
     label: "Consultants, vendors and careers",

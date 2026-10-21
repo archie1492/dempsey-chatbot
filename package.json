@@ -8,6 +8,7 @@
     "test:unit": "esbuild test/engine.test.ts --bundle --platform=node --format=esm --outfile=test/.engine.test.mjs --log-level=warning && node --test test/.engine.test.mjs",
     "test:e2e": "node test/run.mjs",
     "test:sync": "node test/sync.mjs",
+    "test:contact": "node test/contact.mjs",
     "preview": "vite preview"
   },
   "author": "",

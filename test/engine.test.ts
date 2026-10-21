@@ -6,7 +6,7 @@ import {
   findName, findPhone, findSiteStatus, findSolicitation, findSpecial, findTimeline, isClientMessage,
 } from "../src/conversation/engine/extract";
 import { handle, nextRoute, beginEdit, isWithdrawRequest } from "../src/conversation/engine/conversation";
-import { reviewRows, toRecord, plainText } from "../src/conversation/engine/summary";
+import { reviewRows, toRecord, plainText, whatsappText, whatsappHref } from "../src/conversation/engine/summary";
 import { newBrief, type Brief, type Route } from "../src/conversation/schema";
 
 const NOW = new Date("2026-10-20T12:00:00-04:00");
@@ -315,4 +315,32 @@ test("company: typed name stored in the record; 'none' counts as not provided", 
 test("withdraw requests are recognised, project talk is not", () => {
   for (const t of ["don't save", "Please delete this conversation", "delete my data", "stop saving", "forget this"]) assert.ok(isWithdrawRequest(t), t);
   for (const t of ["we need to remove a wall", "delete the second floor from the plan", "save money on the kitchen", "Residential"]) assert.ok(!isWithdrawRequest(t), t);
+});
+
+// ── Phase 5: WhatsApp message ──────────────────────────────────────────────
+test("whatsapp: full message from answered details, with the reference", () => {
+  const b = newBrief();
+  run(b, ["We want to renovate our 3,000 sf home in West Palm Beach, starting early 2027"]);
+  const text = whatsappText(b, "DD-2610-7K3F");
+  assert.match(text, /^Hello Dempsey Design,\n\nI'd like to discuss an architectural project\./);
+  assert.match(text, /Project Type: Residential/);
+  assert.match(text, /Location: West Palm Beach/);
+  assert.match(text, /Approximate Size: 3,000 SF/);
+  assert.match(text, /Inquiry Reference: DD-2610-7K3F/);
+  assert.match(text, /would like to continue through WhatsApp\.$/);
+});
+
+test("whatsapp: short message when little is known; no reference when offline", () => {
+  const b = newBrief();
+  run(b, ["Residential"]);
+  assert.equal(whatsappText(b, "DD-2610-7K3F"), "Hello Dempsey Design, I'd like to talk about a project. My inquiry reference is DD-2610-7K3F. I started on your website and would like to continue here.");
+  assert.ok(!/DD-/.test(whatsappText(b, null)));
+});
+
+test("whatsapp: never includes contact details, budget or the visitor's own words", () => {
+  const b = newBrief();
+  run(b, ["Medical office in Boca, about 3,800 sf, budget around $900k. Call me at 561-555-0134, ana@example.com"]);
+  const text = whatsappText(b, "DD-2610-7K3F");
+  assert.ok(!/555-0134|ana@example|900/.test(text), text);
+  assert.ok(whatsappHref("15618890348", text).startsWith("https://wa.me/15618890348?text=Hello%20Dempsey%20Design"));
 });

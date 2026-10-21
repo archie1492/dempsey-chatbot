@@ -111,6 +111,18 @@
 .dd-privacy-link:hover { color: var(--dd-ink); }
 .dd-privacy-link:focus-visible { outline: 2px solid var(--dd-accent); outline-offset: 2px; }
 
+/* Option cards that continue inside the chat (same look as link cards) */
+.dd-card-button { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.dd-card-muted .dd-card-label { color: var(--dd-muted); }
+.dd-card-muted .dd-card-arrow { background: var(--dd-line); color: var(--dd-ink); }
+
+/* Prepared WhatsApp message */
+.dd-wa-preview {
+  min-width: 240px; max-width: 300px; margin: 2px 0;
+  padding: 12px 14px; background: #fff; border: 1px solid var(--dd-line); border-radius: 12px;
+  font-size: 13px; line-height: 1.5; color: var(--dd-ink); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
 /* Review card */
 .dd-review {
   width: 100%; max-width: 300px; margin-left: 16px;

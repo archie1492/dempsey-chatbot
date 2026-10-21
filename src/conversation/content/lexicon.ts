@@ -84,6 +84,7 @@ export const TOPIC_TERMS: Record<string, Weighted> = {
   areas: [["licens*", 3], ["do you work in", 3], ["work in", 2], ["serve", 2], ["service area", 3], ["where are you", 3], ["located", 2], ["travel", 2], ["outside florida", 3]],
   permitting: [["permit*", 3], ["building department", 3], ["approval*", 2], ["zoning", 2]],
   portfolio: [["portfolio", 3], ["examples", 3], ["past work", 3], ["your work", 3], ["previous project*", 3], ["projects you", 3]],
+  booking: [["book", 3], ["booking", 3], ["appointment*", 3], ["meeting", 3], ["schedule a call", 3], ["set up a call", 3], ["calendly", 3]],
   vendors: [["career*", 3], ["job", 3], ["jobs", 3], ["hiring", 3], ["resume", 3], ["internship*", 3], ["vendor*", 3], ["consultant*", 3], ["supplier*", 3], ["partner with you", 3], ["sales rep", 3]],
 };
 

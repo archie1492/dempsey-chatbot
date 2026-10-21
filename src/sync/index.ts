@@ -28,7 +28,7 @@ interface SubmitJob { record: unknown; contact: Record<string, string> }
 interface Channel {
   key: string;
   consent: Consent;
-  consentMethod: "consent_prompt" | "send" | null;
+  consentMethod: "consent_prompt" | "send" | "handoff" | null;
   disclosure: string;
   remote: Remote | null;
   seq: number;
@@ -47,7 +47,7 @@ export interface SubmitResult { ok: boolean; ref?: string }
 const STORAGE_KEY = "dd-chat-v1";
 const RESUME_MS = 24 * 60 * 60 * 1000;
 const BATCH = 50;
-const SUBMIT_TIMEOUT_MS = 9000;
+const SUBMIT_TIMEOUT_MS = 20000;
 const REQUEST_TIMEOUT_MS = 12000;
 export const DISCLOSURE_VERSION = "chat-2026-10";
 export const CLIENT_VERSION = "chatbot-1.0.0";
@@ -157,6 +157,66 @@ class SyncClient {
     this.schedule(0);
   }
 
+  /** Consent given by choosing WhatsApp, email or live chat (the notice is the disclosure). */
+  agreeHandoff(disclosureText: string) {
+    if (!this.api) return;
+    const c = this.current;
+    if (c.consent === "yes" && c.consentMethod) return;
+    c.consent = "yes";
+    if (!c.remote) { c.consentMethod = "handoff"; c.disclosure = disclosureText; }
+    this.persist();
+    this.schedule(0);
+  }
+
+  /** The current inquiry's reference, once the server has it. */
+  get reference(): string | null { return this.current.submittedRef ?? this.current.remote?.ref ?? null; }
+  get submittedRef(): string | null { return this.current.submittedRef; }
+
+  /** Save now (create + send everything queued) and return the reference, or null if the server can't be reached in time. */
+  async ensureSaved(timeoutMs = 8000): Promise<string | null> {
+    if (!this.api) return null;
+    const c = this.current;
+    if (c.consent !== "yes" && !c.consentMethod) return null;
+    const timeout = new Promise<SubmitResult>((resolve) => window.setTimeout(() => resolve({ ok: false }), timeoutMs));
+    const r = await Promise.race([this.deliver(c), timeout]);
+    if (!r.ok) this.schedule(2000);
+    return c.remote?.ref ?? null;
+  }
+
+  /** Record a contact choice (never an outcome). Fire-and-forget; survives the tab opening WhatsApp. */
+  channelEvent(channel: "whatsapp" | "phone" | "booking" | "email", event: "initiated" | "selected") {
+    const remote = this.current.remote;
+    if (!this.api || !remote) return;
+    void fetch(`${this.api}/v1/conversations/${remote.id}/channel`, {
+      method: "POST", mode: "cors", credentials: "omit", keepalive: true,
+      headers: { "Content-Type": "application/json", "X-Chat-Token": remote.token },
+      body: JSON.stringify({ channel, event }),
+    }).catch(() => { /* a missed timeline entry is not worth bothering the visitor about */ });
+  }
+
+  /** Add a follow-up note to an inquiry already sent. */
+  async note(text: string): Promise<boolean> {
+    const remote = this.current.remote;
+    if (!this.api || !remote) return false;
+    await this.ensureSaved(5000);
+    try {
+      const res = await this.post(`/v1/conversations/${remote.id}/note`, { note: text }, remote.token);
+      return res.status === 204;
+    } catch { return false; }
+  }
+
+  /** Is live chat switched on in the dashboard? False whenever it can't be confirmed. */
+  async liveAvailable(): Promise<boolean> {
+    if (!this.api) return false;
+    try {
+      const ctrl = new AbortController();
+      const t = window.setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(`${this.api}/v1/live/status`, { mode: "cors", credentials: "omit", signal: ctrl.signal });
+      window.clearTimeout(t);
+      return res.ok && (await res.json()).available === true;
+    } catch { return false; }
+  }
+
   decline() {
     this.current.consent = "private";
     this.persist();
@@ -186,7 +246,8 @@ class SyncClient {
   startNew() {
     const old = this.current;
     if (hasWork(old)) this.detached.push(old);
-    this.current = newChannel(old.consent === "yes" ? "yes" : old.consent === "private" ? "private" : "unasked");
+    // A fresh start is a new inquiry: "yes" carries over, a private choice is asked again.
+    this.current = newChannel(old.consent === "yes" ? "yes" : "unasked");
     if (old.consent === "yes") this.current.disclosure = old.disclosure;
     this.lastSubmit = { state: "idle" };
     this.persist();

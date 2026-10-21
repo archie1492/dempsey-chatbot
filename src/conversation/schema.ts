@@ -45,6 +45,7 @@ export type SlotId =
   | "contactName"
   | "contactReach"
   | "company"
+  | "note"
   // existing clients
   | "clientProject"
   | "clientMessage"

@@ -91,7 +91,7 @@ export const promptFor = (b: Brief, key: string): string => {
 };
 
 export const chipsFor = (b: Brief, key: string): string[] => {
-  if (key === "checkpoint") return [COPY.checkpointContinue, COPY.checkpointFast];
+  if (key === "checkpoint") return [COPY.checkpointContinue, COPY.checkpointFast, COPY.checkpointContact];
   const q = questionByKey(key);
   if (!q || q.mode === "multi") return [];
   const chips = (q.choices?.(b) ?? []).map((c) => c.label);
@@ -292,6 +292,7 @@ const bandFor = (choices: Choice[], n: number) =>
 const handleAnswer = (b: Brief, key: string, text: string, now: Date): Route => {
   if (key === "checkpoint") {
     const t = normalize(text);
+    if (text === COPY.checkpointContact) return { to: "architect" };
     if (text === COPY.checkpointContinue || /\b(continue|yes|sure|ok|okay|go on|more)\b/.test(t)) b.checkpoint = "continue";
     else if (text === COPY.checkpointFast || /\b(send|review|no|done|that's all|finish)\b/.test(t)) b.checkpoint = "fast";
     else { miss(b); return { to: "ask", q: key }; }

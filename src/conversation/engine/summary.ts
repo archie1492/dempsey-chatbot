@@ -43,6 +43,49 @@ export const plainText = (b: Brief): string => {
   return lines.join("\n");
 };
 
+const SECTOR_SHORT = { residential: "Residential", commercial: "Commercial", hospitality: "Hospitality", institutional: "Institutional" } as const;
+
+/**
+ * The WhatsApp message a visitor reviews before opening WhatsApp. Only project
+ * details go in it (never name, email, phone, budget or the visitor's own words),
+ * because the text travels in the link.
+ */
+export const whatsappText = (b: Brief, ref: string | null): string => {
+  const answered = (id: keyof Brief["answers"]) => {
+    const a = b.answers[id];
+    return a && !a.skipped && a.label && a.label !== "Not sure yet" ? a.label : null;
+  };
+  const sector = sectorOf(b);
+  const lines: string[] = [];
+  if (b.kind !== "client") {
+    const type = answered("projectType");
+    if (sector || type) lines.push(`Project Type: ${[sector ? SECTOR_SHORT[sector] : null, type].filter(Boolean).join(" · ")}`);
+    const loc = answered("location");
+    if (loc) lines.push(`Location: ${loc}`);
+    const size = answered("proposedSf") ?? answered("sizeSf") ?? answered("existingSf");
+    if (size) lines.push(`Approximate Size: ${size.replace(/^About /, "")}`);
+    const keys = answered("keys");
+    if (keys) lines.push(`Keys: ${keys}`);
+    const tl = answered("timeline");
+    if (tl) lines.push(`Timeline: ${tl}`);
+  }
+  const refLine = ref ? `Inquiry Reference: ${ref}` : null;
+  if (b.kind === "client") {
+    const project = answered("clientProject");
+    return `Hello Dempsey Design, ${project ? `this is about ${project}. ` : ""}${ref ? `My inquiry reference is ${ref}. ` : ""}I started on your website and would like to continue here.`;
+  }
+  if (lines.length < 2) {
+    return `Hello Dempsey Design, I'd like to talk about a project.${ref ? ` My inquiry reference is ${ref}.` : ""} I started on your website and would like to continue here.`;
+  }
+  return [
+    "Hello Dempsey Design,", "", "I'd like to discuss an architectural project.", "",
+    ...lines, ...(refLine ? [refLine] : []), "",
+    "I completed the consultation on your website and would like to continue through WhatsApp.",
+  ].join("\n");
+};
+
+export const whatsappHref = (number: string, text: string) => `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+
 export const mailtoHref = (b: Brief): string =>
   `mailto:${STUDIO.email}?subject=${encodeURIComponent(subjectLine(b))}&body=${encodeURIComponent(plainText(b))}`;
 

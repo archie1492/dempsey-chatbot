@@ -517,4 +517,5 @@ export const REVIEW_ROWS: Array<{ id: SlotId; label: string }> = [
   { id: "contactName", label: "Name" },
   { id: "contactReach", label: "Contact" },
   { id: "company", label: "Company" },
+  { id: "note", label: "Note" },
 ];

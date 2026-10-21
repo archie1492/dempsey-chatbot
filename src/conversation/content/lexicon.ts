@@ -15,7 +15,7 @@ export type Weighted = Array<[string, number]>;
 export const SECTOR_TERMS: Record<Sector, Weighted> = {
   residential: [
     ["house", 2], ["home", 2], ["residence", 3], ["residential", 3], ["condo", 2], ["apartment", 2],
-    ["townhouse", 2], ["villa", 2], ["kitchen", 1], ["bathroom", 2], ["master bath", 2], ["bedroom", 2],
+    ["townhouse", 2], ["villa", 2], ["kitchen", 2], ["renovat*", 1], ["bathroom", 2], ["master bath", 2], ["bedroom", 2],
     ["addition", 2], ["second floor", 2], ["second story", 2], ["guest house", 3], ["guesthouse", 3],
     ["adu", 3], ["pool house", 3], ["cabana", 2], ["garage", 1], ["remodel*", 1], ["family", 1],
   ],
@@ -49,13 +49,13 @@ export const TYPE_TERMS: Record<Sector, Record<string, Weighted>> = {
     new_home: [["new home", 3], ["new house", 3], ["custom home", 3], ["build a house", 3], ["build a home", 3], ["ground up", 2], ["new construction", 2], ["build our home", 3]],
     addition: [["addition", 3], ["second floor", 3], ["second story", 3], ["add a", 2], ["expand*", 2], ["extension", 2]],
     renovation: [["renovat*", 2], ["remodel*", 2], ["gut", 2], ["whole house", 3], ["whole home", 3], ["whole-home", 3], ["restor*", 2]],
-    kitchen_bath: [["kitchen", 2], ["bathroom", 3], ["master bath", 3], ["bath", 2]],
+    kitchen_bath: [["kitchen", 3], ["bathroom", 3], ["master bath", 3], ["bath", 2]],
     condo: [["condo", 3], ["apartment", 3], ["penthouse", 3], ["unit", 1]],
     guest_house: [["guest house", 3], ["guesthouse", 3], ["adu", 3], ["pool house", 3], ["cabana", 3], ["in-law", 3]],
   },
   commercial: {
     office: [["office", 3], ["offices", 3], ["headquarters", 3], ["hq", 3], ["coworking", 3], ["workspace", 2]],
-    medical: [["medical", 3], ["clinic", 3], ["dental", 3], ["dentist", 3], ["dermatology", 3], ["physician", 3], ["urgent care", 3], ["veterinary", 3], ["surgery center", 3], ["imaging", 2]],
+    medical: [["medical", 3], ["medical office", 4], ["dental office", 4], ["doctor's office", 4], ["doctors office", 4], ["clinic", 3], ["dental", 3], ["dentist", 3], ["dermatology", 3], ["physician", 3], ["urgent care", 3], ["veterinary", 3], ["surgery center", 3], ["imaging", 2]],
     retail: [["retail", 3], ["store", 3], ["shop", 2], ["showroom", 3], ["salon", 3], ["storefront", 3]],
     flex: [["warehouse", 3], ["industrial", 3], ["flex", 3], ["distribution", 3], ["manufacturing", 3]],
     new_building: [["new building", 3], ["ground up", 3], ["ground-up", 3], ["new construction", 2], ["shell building", 3]],
@@ -108,6 +108,7 @@ export const COMMANDS = {
   restart: ["start over", "restart", "reset", "start again", "begin again"],
   skip: ["skip", "pass", "next", "skip this", "skip it", "rather not say", "prefer not to say", "n/a", "na"],
   notSure: ["not sure", "unsure", "don't know", "dont know", "no idea", "not decided", "undecided", "tbd", "maybe", "not yet"],
+  finish: ["that's all", "thats all", "that is all", "that's it", "thats it", "send it", "send it now", "send now", "i'm done", "im done", "done", "finish", "no more questions"],
   withdraw: [
     "don't save", "dont save", "do not save", "don't save this", "stop saving", "keep it private",
     "delete this conversation", "delete my conversation", "delete the conversation", "delete my data", "forget this",

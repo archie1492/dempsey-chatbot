@@ -5,7 +5,7 @@ import {
   classifySector, classifyTopic, findAreas, findCounts, findEmail, findLocation, findMoney,
   findName, findPhone, findSiteStatus, findSolicitation, findSpecial, findTimeline, isClientMessage,
 } from "../src/conversation/engine/extract";
-import { handle, nextRoute, beginEdit, isWithdrawRequest } from "../src/conversation/engine/conversation";
+import { handle, nextRoute, beginEdit, isWithdrawRequest, promptFor, chipsFor, questionByKey } from "../src/conversation/engine/conversation";
 import { reviewRows, toRecord, plainText, whatsappText, whatsappHref } from "../src/conversation/engine/summary";
 import { newBrief, type Brief, type Route } from "../src/conversation/schema";
 
@@ -228,13 +228,110 @@ test("menu, restart and human commands work anywhere", () => {
   assert.equal(b.kind, null);
 });
 
-test("fallback: unknown text twice offers an architect", () => {
+test("fallback: a hint first, then the question is left for the architect (never a loop)", () => {
   const b = newBrief();
   let at = run(b, ["Residential"]);
   at = run(b, ["qwerty asdf"], at);
   assert.deepEqual(at, { to: "ask", q: "projectType" });
-  run(b, ["zzz"], at);
-  assert.equal(b.misses, 2);
+  assert.match(promptFor(b, "projectType"), /didn't quite catch that\. Tap the closest option/);
+  assert.ok(chipsFor(b, "projectType").includes("Speak with an architect"));
+  at = run(b, ["zzz"], at);
+  assert.notDeepEqual(at, { to: "ask", q: "projectType" });
+  assert.equal(b.answers.projectType?.skipped, true);
+  assert.match(promptFor(b, (at as { q: string }).q), /I'll leave that one for the architect/);
+  // Three misses in a row (across questions): offer the studio.
+  const c = newBrief();
+  let at2 = run(c, ["Residential"]);
+  at2 = run(c, ["qwerty asdf", "zzz"], at2);
+  assert.equal(at2.to, "ask");
+  const q2 = (at2 as { q: string }).q;
+  if (questionByKey(q2)?.mode === "choice") {
+    at2 = run(c, ["blorp blorp"], at2);
+    assert.deepEqual(at2, { to: "architect" });
+  }
+  b.misses = 2;
+  at = handle(b, { to: "ask", q: "occupied" }, "blorp", NOW);
+  assert.deepEqual(at, { to: "architect" });
+  assert.match(b.notes.join(" "), /The studio is one tap away/);
+  assert.match(b.notes.join(" "), /The studio is one tap away/);
+});
+
+test("stage C: varied acknowledgements, never 'Noted. I've noted'", () => {
+  const b = newBrief();
+  let at = run(b, ["We want to renovate our 3,000 sf home in Jupiter"]);
+  const first = b.notes.join(" ");
+  assert.match(first, /^Thank you\. I've noted /);
+  promptFor(b, (at as { q: string }).q);
+  at = run(b, ["Interior renovation"], at);
+  at = run(b, ["we'd like to start next spring, budget around $400k"], at);
+  const second = b.notes.join(" ");
+  assert.doesNotMatch(second, /Noted\. I've noted|Understood\. I've noted/);
+  assert.match(second, /^(Understood —|That's helpful:|Good to know:)/);
+});
+
+test("stage C: classifier fixes", () => {
+  let b = newBrief();
+  run(b, ["We need a medical office in Boca Raton"]);
+  assert.equal(b.answers.projectType?.value, "medical");
+  b = newBrief();
+  run(b, ["kitchen renovation in Palm Beach Gardens"]);
+  assert.equal(b.answers.sector?.value, "residential");
+  assert.equal(b.answers.projectType?.value, "kitchen_bath");
+});
+
+test("stage C: historic renovation gets a note and the scope question", () => {
+  const b = newBrief();
+  const at = run(b, ["We're renovating a historic 1920s house in West Palm Beach"]);
+  assert.deepEqual(at, { to: "ask", q: "workScope" });
+  const p = promptFor(b, "workScope");
+  assert.match(p, /Historic renovations can involve/);
+  assert.match(p, /Is your project primarily an interior renovation, an addition, or a more comprehensive restoration\?/);
+  assert.deepEqual(chipsFor(b, "workScope").slice(0, 4), ["Interior renovation", "Addition", "Comprehensive restoration", "Not sure yet"]);
+  // The note appears once only.
+  const at2 = run(b, ["full restoration of the historic house"], at);
+  assert.equal(b.answers.workScope?.value, "restoration");
+  assert.doesNotMatch(promptFor(b, (at2 as { q: string }).q), /Historic renovations/);
+});
+
+test("stage C: context notes are triggered only by what the visitor said", () => {
+  const b = newBrief();
+  run(b, ["New home on the intracoastal in Palm Beach"]);
+  assert.match(b.notes.join(" "), /Waterfront sites/);
+  const c = newBrief();
+  run(c, ["New home in Jupiter"]);
+  assert.doesNotMatch(c.notes.join(" "), /Waterfront|Historic|Association/);
+});
+
+test("stage C: budget prompt uses known size and location", () => {
+  const b = newBrief();
+  run(b, ["We want to build a 4,000 sf new home in Jupiter"]);
+  const q = questionByKey("budget")!;
+  assert.match(q.prompt(b), /For about 4,000 SF in Jupiter, roughly what construction budget/);
+});
+
+test("stage C: a question mid-intake is answered, then the question is asked again", () => {
+  const b = newBrief();
+  let at = run(b, ["Residential"]);
+  at = run(b, ["How do your fees work?"], at);
+  assert.deepEqual(at, { to: "ask", q: "projectType" });
+  const p = promptFor(b, "projectType");
+  assert.match(p, /Back to your project:/);
+  assert.equal(b.answers.projectType, undefined);
+});
+
+test("stage C: 'that's all' ends the questions and asks only for contact details", () => {
+  const b = newBrief();
+  let at = run(b, ["Restaurant fit-out in Delray Beach"]);
+  at = run(b, ["that's all"], at);
+  assert.deepEqual(at, { to: "ask", q: "contactName" });
+  assert.match(promptFor(b, "contactName"), /just your contact details/);
+});
+
+test("stage C: checkpoint says how many questions remain", () => {
+  const b = newBrief();
+  const at = run(b, ["Residential", "New home", "Skip", "Jupiter", "Within 6 months"]);
+  assert.deepEqual(at, { to: "ask", q: "checkpoint" });
+  assert.match(promptFor(b, "checkpoint"), /ask (\d+|one more) short question/);
 });
 
 test("contact: invalid reach is re-asked, skip is refused", () => {
@@ -244,7 +341,10 @@ test("contact: invalid reach is re-asked, skip is refused", () => {
   at = run(b, ["not telling"], at);
   assert.deepEqual(at, { to: "ask", q: "contactReach" });
   at = run(b, ["561 555 0101"], at);
+  assert.deepEqual(at, { to: "ask", q: "whatsappOk" });
+  at = run(b, ["Yes, WhatsApp is fine"], at);
   assert.deepEqual(at, { to: "review" });
+  assert.equal(b.answers.whatsappOk?.value, "yes");
 });
 
 test("edit from review returns to review", () => {

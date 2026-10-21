@@ -10,6 +10,7 @@
     "test:sync": "node test/sync.mjs",
     "test:contact": "node test/contact.mjs",
     "test:live": "node test/live.mjs",
+    "test:quality": "node test/quality.mjs",
     "preview": "vite preview"
   },
   "author": "",

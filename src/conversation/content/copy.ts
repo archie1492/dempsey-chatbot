@@ -38,9 +38,9 @@ export const COPY = {
   reviewClient: "Here's the message for the studio. Edit anything that isn't right, then send it.",
   sent:
     "Thank you. To deliver it, choose Email this summary — your email app opens with everything filled in. If you'd rather speak now, book a time or call the studio.",
-  architect: "Of course. Choose whichever suits you and an architect will take it from there:",
+  architect: "Choose whichever suits you and an architect will take it from there:",
   architectWithBrief:
-    "Of course. Choose how you'd like to reach the studio — what you've shared so far goes with it:",
+    "Choose how you'd like to reach the studio — what you've shared so far goes with it:",
   reachInvalid:
     "That doesn't look like an email address or a phone number. Could you check it?",
   reachRequired:
@@ -49,6 +49,24 @@ export const COPY = {
   restartNote: "Starting over.",
   editNote: "Updated.",
   skipped: "That's fine.",
+  checkpointN: (n: number) =>
+    n > 1
+      ? `That's enough for an architect to begin the conversation. I can send it now, or ask ${n} short questions that help us prepare.`
+      : "That's enough for an architect to begin the conversation. I can send it now, or ask one more short question that helps us prepare.",
+  backToProject: "Back to your project:",
+  leaveForArchitect: "No problem — I'll leave that one for the architect.",
+  missContact: "I'm a rule-based assistant, so I may be missing what you mean. The studio is one tap away.",
+  finishNote: "Of course — just your contact details, then.",
+  hints: {
+    choice: "Tap the closest option, or Skip if you'd rather not say.",
+    location: "A city or neighborhood is enough — for example, Jupiter or Palm Beach Gardens.",
+    timeline: "Roughly is fine — for example, \u201cthis spring\u201d or \u201cearly 2027\u201d.",
+    budget: "A rough figure or range is fine, or tap Skip.",
+    area: "An approximate number is fine — for example, 2,500 SF.",
+    count: "A number is fine — for example, 40.",
+    multi: "Tick any that apply, or tap Skip.",
+    text: "A few words are enough.",
+  } as Record<string, string>,
 
   // Saving conversations (only when the studio's server is connected)
   privacyNotice: "With your permission, conversations here can be saved so the studio can follow up.",
@@ -109,6 +127,14 @@ export const COPY = {
 
 /** Acknowledgements rotate so the same one never appears twice in a row. */
 export const ACKS = ["Thank you.", "Noted.", "Understood."];
+
+/** Acknowledgements that repeat back what was learned; the first is always used first. */
+export const ACK_TEMPLATES: Array<(what: string) => string> = [
+  (x) => `Thank you. I've noted ${x}.`,
+  (x) => `Understood — ${x}.`,
+  (x) => `That's helpful: ${x}.`,
+  (x) => `Good to know: ${x}.`,
+];
 
 /** One-off notes. Each is shown at most once per conversation. */
 export const NOTES = {

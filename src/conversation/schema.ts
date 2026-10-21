@@ -46,6 +46,8 @@ export type SlotId =
   | "contactReach"
   | "company"
   | "note"
+  | "workScope"
+  | "whatsappOk"
   // existing clients
   | "clientProject"
   | "clientMessage"
@@ -100,6 +102,8 @@ export interface Brief {
   shown: string[];
   /** Consecutive inputs the assistant could not use. */
   misses: number;
+  /** Misses per question, so the same question is never asked a third time. */
+  qMisses: Record<string, number>;
   lastAck: string | null;
   /** Sentences to say before the next question (acknowledgements, notes). */
   notes: string[];
@@ -116,6 +120,7 @@ export const newBrief = (): Brief => ({
   editing: null,
   shown: [],
   misses: 0,
+  qMisses: {},
   lastAck: null,
   notes: [],
   wrapUp: false,

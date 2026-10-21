@@ -1,8 +1,9 @@
 // The conversation engine. Pure TypeScript — no React, no ChatBotify — so it
 // can be unit-tested. flow.tsx turns its Routes into ChatBotify blocks.
 
-import { ACKS, COPY, ENTRY_CHOICES, GENERAL_CHOICES, INFO, INFO_FOLLOWUPS, NOTES } from "../content/copy";
+import { ACKS, ACK_TEMPLATES, COPY, ENTRY_CHOICES, GENERAL_CHOICES, INFO, INFO_FOLLOWUPS, NOTES } from "../content/copy";
 import { COMMANDS } from "../content/lexicon";
+import { CONTEXT_NOTES } from "../content/context";
 import {
   CLIENT_QUESTIONS, PROJECT_TYPES, Q, QUESTIONS, SITE_STATUS_LABELS, SPECIAL, sectorOf, typeOf,
 } from "../content/pathways";
@@ -42,6 +43,14 @@ const once = (b: Brief, key: string, text: string) => {
   b.notes.push(text);
 };
 
+/** Acknowledge what was learned: the first time "Thank you. I've noted …", then varied. */
+const ackWith = (b: Brief, what: string): string => {
+  const used = b.shown.filter((k) => k.startsWith("ack:")).length;
+  b.shown.push(`ack:${used}`);
+  const i = used === 0 ? 0 : 1 + ((used - 1) % (ACK_TEMPLATES.length - 1));
+  return ACK_TEMPLATES[i](what);
+};
+
 const ack = (b: Brief): string => {
   const next = ACKS.find((a) => a !== b.lastAck) ?? ACKS[0];
   b.lastAck = next;
@@ -53,7 +62,11 @@ export const resetBrief = (b: Brief) => Object.assign(b, newBrief());
 // ── resolver: what to ask next ─────────────────────────────────────────────
 const applies = (b: Brief, q: Q) => (q.when ? q.when(b) : true);
 
-const RFQ_KEEP: SlotId[] = ["sector", "projectType", "solicitation", "solicitationDetails", "contactName", "contactReach", "company"];
+const RFQ_KEEP: SlotId[] = ["sector", "projectType", "solicitation", "solicitationDetails", "contactName", "contactReach", "whatsappOk", "company"];
+
+/** Optional questions still to come if the visitor continues past the checkpoint. */
+export const remainingOptional = (b: Brief): number =>
+  QUESTIONS.filter((q) => q.stage === "optional" && !has(b, q.id) && applies(b, q)).length;
 
 export const nextRoute = (b: Brief): Route => {
   if (b.kind === "client") {
@@ -85,7 +98,10 @@ export const say = (b: Brief, prompt: string): string => {
 };
 
 export const promptFor = (b: Brief, key: string): string => {
-  if (key === "checkpoint") return say(b, COPY.checkpoint);
+  if (key === "checkpoint") {
+    const n = remainingOptional(b);
+    return say(b, n > 0 ? COPY.checkpointN(n) : COPY.checkpoint);
+  }
   const q = questionByKey(key);
   return say(b, q ? q.prompt(b) : COPY.menu);
 };
@@ -96,7 +112,7 @@ export const chipsFor = (b: Brief, key: string): string[] => {
   if (!q || q.mode === "multi") return [];
   const chips = (q.choices?.(b) ?? []).map((c) => c.label);
   if (q.skippable !== false) chips.push(SKIP);
-  if (b.misses >= 2) chips.push(ARCHITECT_CHIP);
+  if (b.misses >= 1) chips.push(ARCHITECT_CHIP);
   return chips;
 };
 
@@ -146,6 +162,36 @@ export const handle = (b: Brief, at: Route, input: string, now = new Date()): Ro
     return { to: "architect" };
   }
 
+  const route = dispatch(b, at, text, now);
+  if (applyContext(b, at, text) && route.to === "ask" && route.q !== "checkpoint" && !b.editing && b.kind === "new_project") {
+    return nextRoute(b);
+  }
+  return route;
+};
+
+/** Add a considered note when the visitor mentions a situation that matters. */
+const applyContext = (b: Brief, at: Route, text: string): boolean => {
+  if (b.kind !== "new_project" || wordCount(text) < 2) return false;
+  if (at.to === "ask") {
+    const q = questionByKey(at.q);
+    if (q && (q.mode === "multi" || q.stage === "contact" || (q.choices?.(b) ?? []).some((c) => c.label === text))) return false;
+  }
+  const t = normalize(text);
+  const sector = sectorOf(b);
+  let historic = false;
+  let count = 0;
+  for (const n of CONTEXT_NOTES) {
+    if (count >= 1 || b.shown.includes(`ctx:${n.key}`)) continue;
+    if (n.sectors && (!sector || !n.sectors.includes(sector))) continue;
+    if (!n.terms.some((term) => hasTerm(t, term))) continue;
+    once(b, `ctx:${n.key}`, n.note);
+    count++;
+    if (n.key === "historic") historic = true;
+  }
+  return historic;
+};
+
+const dispatch = (b: Brief, at: Route, text: string, now: Date): Route => {
   switch (at.to) {
     case "start":
     case "menu":
@@ -173,6 +219,36 @@ const miss = (b: Brief, firstLine = COPY.fallback) => {
   b.misses += 1;
   b.notes.push(b.misses >= 2 ? COPY.fallbackHuman : firstLine);
 };
+
+/**
+ * A question that wasn't understood. Never a loop: the first time, rephrase
+ * with a hint; the second time on the same question, leave it for the
+ * architect and move on; after three misses in a row, offer the studio.
+ */
+const missQuestion = (b: Brief, q: Q): Route => {
+  b.misses += 1;
+  const n = (b.qMisses[q.key] = (b.qMisses[q.key] ?? 0) + 1);
+  if (b.misses >= 3) {
+    b.misses = 0;
+    b.notes.push(COPY.missContact);
+    return { to: "architect" };
+  }
+  if (n >= 2 && q.skippable !== false) {
+    set(b, q.id, { value: null, label: "Not provided", via: "text", skipped: true }, true);
+    b.notes.push(COPY.leaveForArchitect);
+    const misses = b.misses;
+    const r = finishAnswer(b, q, []);
+    b.misses = misses;
+    return r;
+  }
+  const hint = COPY.hints[q.mode] ?? COPY.hints.text;
+  b.notes.push(`${COPY.fallback} ${hint}`);
+  return { to: "ask", q: q.key };
+};
+
+/** A question to the assistant ("how do fees work?") in the middle of the intake. */
+const looksLikeQuestion = (text: string) =>
+  /\?\s*$/.test(text) || /^(how|what|do|does|can|could|are|is|who|where|why|when)\b/i.test(text.trim());
 
 const handleEntry = (b: Brief, text: string, now: Date): Route => {
   const entry = ENTRY_CHOICES.find((c) => c.label === text);
@@ -295,7 +371,12 @@ const handleAnswer = (b: Brief, key: string, text: string, now: Date): Route => 
     if (text === COPY.checkpointContact) return { to: "architect" };
     if (text === COPY.checkpointContinue || /\b(continue|yes|sure|ok|okay|go on|more)\b/.test(t)) b.checkpoint = "continue";
     else if (text === COPY.checkpointFast || /\b(send|review|no|done|that's all|finish)\b/.test(t)) b.checkpoint = "fast";
-    else { miss(b); return { to: "ask", q: key }; }
+    else {
+      b.misses += 1;
+      if (b.misses >= 3) { b.misses = 0; b.notes.push(COPY.missContact); return { to: "architect" }; }
+      b.notes.push(`${COPY.fallback} ${COPY.hints.choice}`);
+      return { to: "ask", q: key };
+    }
     b.misses = 0;
     return nextRoute(b);
   }
@@ -303,6 +384,25 @@ const handleAnswer = (b: Brief, key: string, text: string, now: Date): Route => 
   const q = questionByKey(key);
   if (!q) return nextRoute(b);
   const choices = q.choices?.(b) ?? [];
+
+  // "That's all" / "send it": stop the questions, ask only for contact details.
+  if (q.stage !== "contact" && q.stage !== "client" && b.kind === "new_project" && isCommand(text, COMMANDS.finish)) {
+    b.wrapUp = true;
+    b.checkpoint = b.checkpoint ?? "fast";
+    b.misses = 0;
+    const r = nextRoute(b);
+    if (r.to === "ask") b.notes.push(COPY.finishNote);
+    return r;
+  }
+
+  // A question about the studio mid-intake: answer it, then return to the project.
+  if (!choices.some((c) => c.label === text) && looksLikeQuestion(text)) {
+    const topic = classifyTopic(text);
+    if (topic && INFO[topic]) {
+      b.notes.push(INFO[topic].answer, COPY.backToProject);
+      return { to: "ask", q: key };
+    }
+  }
 
   // Skip / not sure
   if (text === SKIP || isCommand(text, COMMANDS.skip)) {
@@ -327,7 +427,7 @@ const handleAnswer = (b: Brief, key: string, text: string, now: Date): Route => 
   if (!answered) {
     if (q.mode === "reach") { b.misses += 1; b.notes.push(COPY.reachInvalid); return { to: "ask", q: key }; }
     if (q.mode === "name") { b.notes.push(COPY.nameRequired); return { to: "ask", q: key }; }
-    if (!others.length) { miss(b); return { to: "ask", q: key }; }
+    if (!others.length) return missQuestion(b, q);
     b.notes.push(acknowledge(b, others));
     noteAfterChanges(b, others);
     b.misses = 0;
@@ -605,7 +705,9 @@ export const acknowledge = (b: Brief, ids: SlotId[]): string => {
   }
   if (ids.includes("brand")) parts.push("an operator or brand involved");
   if (ids.includes("special")) parts.push(lc(b.answers.special!.label));
-  return parts.length ? `${a} I've noted ${joinList(parts)}.` : a;
+  if (!parts.length) return a;
+  b.lastAck = a;
+  return ackWith(b, joinList(parts));
 };
 
 /** Notes triggered by what's now known; each appears once per conversation. */

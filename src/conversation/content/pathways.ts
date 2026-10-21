@@ -247,6 +247,19 @@ export const QUESTIONS: Q[] = [
 
   // residential
   {
+    key: "workScope", id: "workScope", stage: "core", mode: "choice",
+    when: (b) => is(b, "residential") && (typeIn(b, "renovation") || (b.shown.includes("ctx:historic") && !typeIn(b, "new_home", "addition", "guest_house", "kitchen_bath", "condo"))),
+    prompt: (b) => b.shown.includes("ctx:historic")
+      ? "Is your project primarily an interior renovation, an addition, or a more comprehensive restoration?"
+      : "Is it primarily an interior renovation, an addition, or a more comprehensive restoration?",
+    choices: () => [
+      { label: "Interior renovation", value: "interior", keys: ["interior", "inside", "interiors", "kitchen", "bathrooms"] },
+      { label: "Addition", value: "addition", keys: ["addition", "add on", "add-on", "expand", "second floor", "extension"] },
+      { label: "Comprehensive restoration", value: "restoration", keys: ["restoration", "restore", "comprehensive", "everything", "full", "whole house", "gut"] },
+      { label: "Not sure yet", value: null, keys: ["not sure", "unsure"] },
+    ],
+  },
+  {
     key: "occupied", id: "occupied", stage: "core", mode: "choice",
     when: (b) => is(b, "residential") && typeIn(b, "renovation", "addition", "kitchen_bath"),
     prompt: () => "Will you be living in the home during construction?",
@@ -407,10 +420,13 @@ export const QUESTIONS: Q[] = [
   },
   {
     key: "budget", id: "budget", stage: "optional", mode: "budget",
-    prompt: (b) =>
-      is(b, "institutional")
-        ? "Is there a construction budget yet? It helps us scope the work."
-        : "What construction budget are you working with? It helps us scope the work; it isn't a commitment.",
+    prompt: (b) => {
+      if (is(b, "institutional")) return "Is there a construction budget yet? It helps us scope the work.";
+      const size = (["proposedSf", "sizeSf", "existingSf"] as const).map((id) => b.answers[id]).find((a) => a && !a.skipped && typeof a.value === "number");
+      const loc = b.answers.location && !b.answers.location.skipped ? b.answers.location.label : null;
+      if (size && loc) return `For about ${Number(size.value).toLocaleString("en-US")} SF in ${loc}, roughly what construction budget do you have in mind? A range is fine; it isn't a commitment.`;
+      return "What construction budget are you working with? It helps us scope the work; it isn't a commitment.";
+    },
     choices: (b) => BUDGET_BANDS(b),
   },
   {
@@ -444,6 +460,15 @@ export const QUESTIONS: Q[] = [
       const name = String(val(b, "contactName") ?? "").split(" ")[0];
       return name ? `Thank you, ${name}. What's the best email or phone number to reach you?` : "What's the best email or phone number to reach you?";
     },
+  },
+  {
+    key: "whatsappOk", id: "whatsappOk", stage: "contact", mode: "choice",
+    when: (b) => !!(b.answers.contactReach?.value as { phone?: string } | undefined)?.phone,
+    prompt: () => "Can the studio reach you on WhatsApp at that number?",
+    choices: () => [
+      { label: "Yes, WhatsApp is fine", value: "yes", keys: ["yes", "whatsapp", "sure", "fine"] },
+      { label: "Calls or texts only", value: "no", keys: ["no", "calls", "texts", "text", "call"] },
+    ],
   },
   {
     key: "company", id: "company", stage: "contact", mode: "text",
@@ -488,6 +513,7 @@ export const CLIENT_QUESTIONS: Q[] = [
 export const REVIEW_ROWS: Array<{ id: SlotId; label: string }> = [
   { id: "projectType", label: "Project" },
   { id: "location", label: "Location" },
+  { id: "workScope", label: "Scope" },
   { id: "role", label: "Your role" },
   { id: "occupied", label: "Living there during work" },
   { id: "hoa", label: "Association approval" },
@@ -516,6 +542,7 @@ export const REVIEW_ROWS: Array<{ id: SlotId; label: string }> = [
   { id: "urgency", label: "Time-sensitive" },
   { id: "contactName", label: "Name" },
   { id: "contactReach", label: "Contact" },
+  { id: "whatsappOk", label: "WhatsApp" },
   { id: "company", label: "Company" },
   { id: "note", label: "Note" },
 ];

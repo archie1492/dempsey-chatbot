@@ -5,6 +5,7 @@ import type { ReviewRow } from "./conversation/engine/summary";
 import type { SlotId } from "./conversation/schema";
 import { editPath, pathFor } from "./session";
 import { sync } from "./sync";
+import { endLive, live, useLiveActive } from "./liveState";
 
 const Arrow = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -34,7 +35,7 @@ export const RestartButton = () => {
       className="dd-icon-btn"
       aria-label="Restart conversation"
       title="Restart conversation"
-      onClick={() => { void restartFlow(); }}
+      onClick={() => { void endLive().then(() => restartFlow()); }}
     >
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -46,6 +47,21 @@ export const RestartButton = () => {
 /** Footer: persistent "Speak with an architect" action. */
 export const ArchitectButton = () => {
   const { goToPath } = usePaths();
+  const inLive = useLiveActive();
+  if (inLive) {
+    // During live chat the assistant steps aside; the footer only ends the chat.
+    return (
+      <button
+        type="button"
+        className="dd-architect-btn"
+        onClick={() => {
+          void endLive().then(() => { liveHooks.onVisitorEnd(); void goToPath(pathFor({ to: "contact", step: "live-ended" })); });
+        }}
+      >
+        End live chat
+      </button>
+    );
+  }
   return (
     <button type="button" className="dd-architect-btn" onClick={() => { void goToPath(pathFor({ to: "architect" })); }}>
       <span className="dd-architect-icon" aria-hidden="true">
@@ -114,7 +130,7 @@ export const ReviewCard = ({ rows }: { rows: ReviewRow[] }) => {
               type="button"
               className="dd-review-edit"
               aria-label={`Edit ${r.label}`}
-              onClick={() => { void goToPath(editPath(r.id as SlotId)); }}
+              onClick={() => { if (!live.active) void goToPath(editPath(r.id as SlotId)); }}
             >
               Edit
             </button>
@@ -171,6 +187,9 @@ export const ActionCard = ({ label, sub, onClick, muted }: { label: string; sub:
   </button>
 );
 
+/** Set by flow.tsx: what happens when the visitor ends a live chat from the footer. */
+export const liveHooks = { onVisitorEnd: (): void => {} };
+
 /** Handlers for the contact options, set by flow.tsx (keeps conversation logic out of the UI). Each returns the path to go to. */
 export const contactActions = {
   whatsapp: (): string | null => null,
@@ -181,14 +200,15 @@ export const contactActions = {
 
 /** The four ways to reach the studio. */
 export const ContactOptions = ({ hideLive = false }: { hideLive?: boolean }) => {
-  const [live, setLive] = useState<boolean | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
   useEffect(() => {
     let on = true;
-    if (!hideLive) void sync.liveAvailable().then((v) => { if (on) setLive(v); });
+    if (!hideLive) void sync.liveAvailable().then((v) => { if (on) setAvailable(v); });
     return () => { on = false; };
   }, [hideLive]);
   const { goToPath } = usePaths();
-  const go = (p: string | null) => { if (p) void goToPath(p); };
+  // Older cards in the transcript do nothing while a live chat is running.
+  const go = (p: string | null) => { if (p && !live.active) void goToPath(p); };
   const ref = sync.reference;
   return (
     <div className="dd-contact">
@@ -200,12 +220,11 @@ export const ContactOptions = ({ hideLive = false }: { hideLive?: boolean }) => 
         sub={ref ? `${STUDIO.phone} · mention ${ref}` : STUDIO.phone}
         onClick={() => contactActions.phone()}
       />
-      {!hideLive && (
+      {!hideLive && available === true && (
         <ActionCard
-          label={live ? "Connect with a live agent" : "Live Chat — Currently Unavailable"}
-          sub={live ? "Chat with the studio here" : "See other ways to reach us"}
-          muted={!live}
-          onClick={() => go(contactActions.live(!!live))}
+          label="Connect with a live agent"
+          sub="Chat with the studio here"
+          onClick={() => go(contactActions.live(true))}
         />
       )}
     </div>
@@ -236,7 +255,7 @@ export const WhatsAppCard = ({ onOpen }: { onOpen: () => string | null }) => {
         href={state.href}
         label="Open WhatsApp"
         sub="Opens the app or WhatsApp Web"
-        onClick={() => { const p = onOpen(); if (p) window.setTimeout(() => { void goToPath(p); }, 400); }}
+        onClick={() => { if (live.active) return; const p = onOpen(); if (p) window.setTimeout(() => { void goToPath(p); }, 400); }}
       />
     </div>
   );

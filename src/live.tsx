@@ -5,31 +5,15 @@
 // alternatives when no one is available.
 
 import { useEffect, useSyncExternalStore } from "react";
+import { endLive, live } from "./liveState";
 import { useMessages, usePaths } from "react-chatbotify";
 import { COPY } from "./conversation/content/copy";
 import { ContactOptions } from "./components";
 import { pathFor, session, type ContactStep } from "./session";
 import { sync } from "./sync";
 
-type Phase = "idle" | "starting" | "waiting" | "live" | "missed" | "ended" | "failed";
-
 const WAIT_LIMIT_MS = 75_000;      // the server times out at 60 s; never wait longer than this regardless
 const NO_REPLY_HINT_MS = 180_000;  // visitor message unanswered for 3 minutes
-
-export const live = {
-  phase: "idle" as Phase,
-  agent: null as string | null,
-  lastSeq: 0,
-  startedAt: 0,
-  lastVisitorAt: 0,
-  lastStudioAt: 0,
-  hinted: false,
-  listeners: new Set<() => void>(),
-  set(p: Phase) { this.phase = p; this.listeners.forEach((f) => f()); },
-  subscribe(f: () => void) { live.listeners.add(f); return () => { live.listeners.delete(f); }; },
-  reset() { Object.assign(this, { agent: null, lastSeq: 0, startedAt: 0, lastVisitorAt: 0, lastStudioAt: 0, hinted: false }); this.set("idle"); },
-  get active() { return this.phase === "waiting" || this.phase === "live"; },
-};
 
 const step = (s: ContactStep) => ({ to: "contact" as const, step: s });
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -58,13 +42,9 @@ export const startLive = async (): Promise<string> => {
   return COPY.liveUnavailableNow;
 };
 
-export const endLive = async () => {
-  if (!live.active) return;
-  live.set("ended");
-  await sync.liveEnd();
-};
-
 /** Polls while waiting or live; injects messages; moves the conversation on when it ends. */
+export { endLive, live };
+
 export const LiveBridge = () => {
   const phase = useSyncExternalStore((f) => live.subscribe(f), () => live.phase);
   const { injectMessage } = useMessages();

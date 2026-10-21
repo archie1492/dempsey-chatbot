@@ -26,13 +26,14 @@ const cardLabels = async (b) => (await b.sr.locator(".dd-contact").last().locato
   const b = await open();
   await footer(b);
   const labels = await cardLabels(b);
-  ok("four options, available before any questions", JSON.stringify(labels) === JSON.stringify(["Continue on WhatsApp", "Email the studio", "Call the studio", "Live Chat — Currently Unavailable"]), labels.join(" | "));
+  await b.page.waitForTimeout(600);
+  const settled = await cardLabels(b);
+  ok("three options while live chat is off (no greyed-out live card)", JSON.stringify(settled) === JSON.stringify(["Continue on WhatsApp", "Email the studio", "Call the studio"]), settled.join(" | "));
   ok("call option is a tel: link to the studio", (await card(b, "Call the studio").getAttribute("href")) === "tel:+15618890348");
   await b.shot("contact-1-options");
 
-  // Live chat while unavailable
-  await card(b, "Live Chat — Currently Unavailable").click();
-  await b.idle();
+  // Live chat asked for by name while unavailable
+  await b.say("live chat");
   ok("live chat unavailable: says so and offers the other three", /No one from the studio is available for live chat/.test(await b.last())
     && JSON.stringify(await cardLabels(b)) === JSON.stringify(["Continue on WhatsApp", "Email the studio", "Call the studio"]));
 

@@ -66,13 +66,22 @@ const waitBot = (b, re, ms = 15000) => waitFor(async () => (await botTexts(b)).s
   await v.say("Thanks Eric — <img src=x onerror=alert(1)> we'd like to start in March.");
   ok("dashboard: visitor message arrives, shown as text", await waitFor(async () => (await admin.locator("[data-transcript] .msg.visitor .body").allInnerTexts()).some((t) => t.includes("<img src=x onerror=alert(1)>"))));
   ok("dashboard: no HTML injected", (await admin.locator("[data-transcript] img").count()) === 0);
+  // The assistant steps aside: the footer only ends the chat, old cards do nothing,
+  // and whatever the visitor sends still reaches the studio.
+  ok("live: footer offers 'End live chat'", (await v.sr.locator(".dd-architect-btn").innerText()).trim() === "End live chat");
+  await v.sr.locator(".dd-card-link", { hasText: "Email the studio" }).first().click();
+  await v.page.waitForTimeout(800);
+  ok("live: old contact cards do nothing", !/What's your name|email address/i.test(await v.last()));
+  await v.say("Also, the site is on a corner lot.");
+  ok("dashboard: message after tapping an old card still arrives", await waitFor(async () => (await admin.locator("[data-transcript] .msg.visitor .body").allInnerTexts()).some((t) => t.includes("corner lot"))));
   await v.shot("live-2-chatting");
   await admin.screenshot({ path: "/tmp/claude-0/shots/live-dash-chat.png" });
   const liveRows = sql("SELECT CONCAT(sender, ':', channel) FROM messages WHERE seq >= 1000000 ORDER BY seq").split("\n");
-  ok("saved: both sides of the live chat, in order", JSON.stringify(liveRows) === JSON.stringify(["studio:live", "visitor:live"]), liveRows.join(","));
+  ok("saved: both sides of the live chat, in order", JSON.stringify(liveRows) === JSON.stringify(["studio:live", "visitor:live", "visitor:live"]), liveRows.join(","));
   ok("saved: live messages not duplicated in the assistant transcript", sql("SELECT COUNT(*) FROM messages WHERE seq < 1000000 AND body LIKE '%we''d like to start in March%'") === "0");
 
   await admin.click("[data-end]");
+  ok("visitor: footer returns to 'Speak with an architect' after the chat", await waitFor(async () => (await v.sr.locator(".dd-architect-btn").innerText()).includes("Speak with an architect")));
   ok("visitor: told the studio ended it, then offered options", await waitBot(v, /Eric has ended the chat\. It's saved with your inquiry\./) && await waitBot(v, /Anything else\? You can reach the studio here/));
   ok("visitor: no JS errors", v.errors.length === 0, v.errors.join(" | "));
   await v.ctx.close();
@@ -116,7 +125,8 @@ const waitBot = (b, re, ms = 15000) => waitFor(async () => (await botTexts(b)).s
   await waitFor(async () => (await admin.locator(".session.status-requested").count()) === 1, 10000);
   await admin.locator(".session.status-requested button", { hasText: "Accept" }).click();
   await waitBot(w, /has joined the chat/);
-  await w.say("end chat");
+  await w.idle();
+  await w.sr.locator(".dd-architect-btn", { hasText: "End live chat" }).click();
   ok("visitor ends the chat: confirmed and saved", await waitBot(w, /You've ended the chat\. It's saved with your inquiry\./));
   ok("dashboard: shows it ended", await waitFor(async () => (await admin.locator("[data-panel-sub]").innerText()).includes("Ended"), 8000));
   await w.ctx.close();
@@ -146,7 +156,8 @@ await waitFor(async () => (await admin.textContent("[data-live-state]")) === "Of
 {
   const v = await open();
   await footer(v);
-  ok("unavailable: shown as 'Live Chat — Currently Unavailable'", await waitFor(async () => (await card(v, "Live Chat — Currently Unavailable").count()) === 1));
+  await v.page.waitForTimeout(800);
+  ok("unavailable: live card not shown at all", (await v.sr.locator(".dd-card-label", { hasText: /live/i }).count()) === 0 && JSON.stringify(await lastLabels(v)) === JSON.stringify(["Continue on WhatsApp", "Email the studio", "Call the studio"]));
   await v.ctx.close();
 }
 ok("dashboard: no JS errors", adminErrors.length === 0, adminErrors.join(" | "));

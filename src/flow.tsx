@@ -16,7 +16,7 @@ import { STUDIO } from "./conversation/content/copy";
 import type { Brief, ReachValue, Route } from "./conversation/schema";
 import {
   BookingCard, ContactOptions, PortfolioCard, PrivacyLink, ReviewCard, SendCard, SentCard, WhatsAppCard,
-  contactActions, whatsappStore,
+  contactActions, liveHooks, whatsappStore,
 } from "./components";
 import { pathFor, routeOf, session, type ContactStep, type FlowRoute } from "./session";
 import { LiveBridge, endLive, live, sendLive, startLive } from "./live";
@@ -167,6 +167,7 @@ contactActions.live = (available: boolean) => {
   sync.log("visitor", "choice", "Connect with a live agent", "contact");
   return pathFor(liveStart(available));
 };
+liveHooks.onVisitorEnd = () => { session.brief.notes.push(COPY.liveEndedVisitor); };
 contactActions.phone = () => {
   sync.log("visitor", "choice", "Call the studio", "contact");
   sync.channelEvent("phone", "selected");
@@ -275,12 +276,15 @@ const shortcut = (b: Brief, input: string): FlowRoute | null => {
 const routeInput = (b: Brief, at: FlowRoute) => async (p: Params) => {
   const input = (p.userInput ?? "").trim();
   if (saving() && at.to !== "consent" && isWithdrawRequest(input)) {
+    if (live.active) await endLive();
     const had = sync.withdraw();
     b.notes.push(had ? COPY.withdrawn : COPY.withdrawnNothing);
     return pathFor(at.to === "start" || at.to === "resume" || at.to === "sent" || at.to === "contact" ? { to: "menu" } : at);
   }
-  const inLive = at.to === "contact" && ["live-wait", "live-chat", "live-note"].includes(at.step) && live.active;
-  if (!inLive) logVisitor(input, at); // live messages are saved by the live-chat endpoint instead
+  // While a live chat is running, everything the visitor sends goes to the studio,
+  // wherever the assistant happens to be (an older chip, a stale step).
+  if (live.active) return pathFor(await answerContact(b, "live-chat", input));
+  logVisitor(input, at); // live messages are saved by the live-chat endpoint instead
   if (at.to === "consent") return pathFor(answerConsent(b, at.next, input));
   if (at.to === "resume") return pathFor(answerResume(b, input));
   if (at.to === "contact") return pathFor(await answerContact(b, at.step, input));

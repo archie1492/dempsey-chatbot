@@ -11,6 +11,7 @@
     "test:contact": "node test/contact.mjs",
     "test:live": "node test/live.mjs",
     "test:quality": "node test/quality.mjs",
+    "test:inline": "node test/inline.mjs",
     "preview": "vite preview"
   },
   "author": "",

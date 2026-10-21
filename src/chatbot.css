@@ -178,3 +178,9 @@
 @media (prefers-reduced-motion: reduce) {
   .dd-root * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* ── In-page panel (contact page) ─────────────────────────────────────── */
+.dd-inline .rcb-chat-window { max-height: none; margin: 0; }
+@media (max-width: 767px) {
+  .dd-inline .rcb-chat-window { height: min(var(--dd-inline-height, 640px), 78vh) !important; }
+}

@@ -25,7 +25,7 @@ export const makeOpen = (browser, base) => async function open({ ctx: existing, 
   await page.goto(base, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("dempsey-chatbot")?.style.visibility === "visible");
   const sr = page.locator("#dempsey-chatbot");
-  await sr.locator(".rcb-toggle-button").click();
+  if (await sr.locator(".rcb-toggle-button").count()) await sr.locator(".rcb-toggle-button").click(); // in-page panel has no launcher
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const bot = {
     page, sr, errors, ctx, apiCalls, net,

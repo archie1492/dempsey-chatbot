@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact harness</title><link rel="icon" href="data:,">
+<style>
+/* approximates the Webflow contact page: two-column grid, form on the right */
+body{margin:0;font-family:Poppins,sans-serif;background:#fafafa;color:#333}
+.container{max-width:1200px;margin:0 auto;padding:80px 32px}
+.contact-layout{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+.contact-heading{font-size:56px;line-height:1.05;margin:0 0 24px;font-weight:500}
+.form-input{display:block;width:100%;box-sizing:border-box;border:1px solid #ccc;padding:12px;margin:6px 0 18px}
+.button{background:#1c1c1c;color:#fff;border:0;padding:14px 28px}
+.map{height:300px;background:#ddd}
+@media (max-width: 767px){.contact-layout{grid-template-columns:1fr;gap:40px}.container{padding:48px 16px}.contact-heading{font-size:40px}}
+</style></head><body>
+<div class="map"></div>
+<div class="container"><div class="contact-layout">
+  <div class="contact-info-wrapper"><h1 class="contact-heading">Tell us about your project</h1>
+    <p>We'd love to hear your thoughts and answer any questions you might have.</p>
+    <p>Email info@dempsey-design.com<br>Phone 561-889-0348</p></div>
+  <div class="contact-form-wrapper">
+    <div data-dempsey-chat data-form=".contact-form-block" data-height="620"></div>
+    <div class="contact-form-block"><form id="email-form">
+      <label>Name</label><input class="form-input" id="name" name="Name">
+      <label>Email Address</label><input class="form-input" id="email" name="Email" type="email">
+      <label>Your Message</label><textarea class="form-input" id="field" name="Field"></textarea>
+      <input type="submit" class="button" value="Submit"></form></div>
+  </div>
+</div></div>
+<div style="height:600px;background:#1c1c1c"></div>
+<script src="/dist/dempsey-chatbot.js" data-api="http://127.0.0.1:8100" defer></script>
+</body></html>

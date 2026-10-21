@@ -208,9 +208,33 @@ const styles: Styles = {
   chatMessagePromptHoveredStyle: { ...PROMPT_BASE, color: "#ffffff", borderColor: INK, backgroundColor: INK },
 };
 
-export default function App() {
+/** In-page panel (contact page): always open, no launcher, no close button. */
+const inlineSettings: Settings = {
+  ...settings,
+  general: { ...settings.general, embedded: true },
+  device: { applyMobileOptimizations: false },
+  tooltip: { mode: "NEVER" },
+  header: { ...settings.header, buttons: [<RestartButton key="restart" />] },
+};
+
+const inlineStyles: Styles = {
+  ...styles,
+  chatWindowStyle: {
+    ...styles.chatWindowStyle,
+    width: "100%",
+    height: "var(--dd-inline-height, 640px)",
+    boxShadow: "0 18px 48px -18px rgba(20,20,20,.22)",
+    position: "relative",
+    bottom: "auto",
+    right: "auto",
+  },
+};
+
+export default function App({ inline = false }: { inline?: boolean }) {
   const flow = useMemo(() => buildFlow(), []);
-  return <ChatBot flow={flow} settings={settings} styles={styles} />;
+  return inline
+    ? <ChatBot flow={flow} settings={inlineSettings} styles={inlineStyles} />
+    : <ChatBot flow={flow} settings={settings} styles={styles} />;
 }
 
 export { ACCENT, INK, LINE, MUTED, PAPER };

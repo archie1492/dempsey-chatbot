@@ -193,6 +193,8 @@ test("institutional: open RFQ goes straight to contact", () => {
   assert.deepEqual(at, { to: "ask", q: "solicitation" });
   at = run(b, ["Yes", "RFQ 26-112, due November 14"], at);
   assert.match(b.notes.join(" "), /procurement contact/);
+  assert.equal(b.answers.timeline, undefined, "RFQ due date must not become the timeline");
+  assert.doesNotMatch(b.notes.join(" "), /timing/);
   assert.deepEqual(at, { to: "ask", q: "contactName" });
 });
 

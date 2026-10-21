@@ -308,7 +308,7 @@ const handleAnswer = (b: Brief, key: string, text: string, now: Date): Route => 
 
   const answered = answerCurrent(b, q, choices, text, now);
   const typed = !choices.some((c) => c.label === text) && !(q.mode === "multi");
-  const others = typed && wordCount(text) >= 2 ? extractAll(b, text, now, q.id) : [];
+  const others = typed && wordCount(text) >= 2 && q.id !== "solicitationDetails" ? extractAll(b, text, now, q.id) : [];
 
   if (!answered) {
     if (q.mode === "reach") { b.misses += 1; b.notes.push(COPY.reachInvalid); return { to: "ask", q: key }; }
@@ -499,7 +499,8 @@ export const extractAll = (b: Brief, text: string, now = new Date(), except?: Sl
   if (money?.perSf && sector === "commercial") put("tiAllowance", { value: "yes", label: `Yes — $${money.perSf}/SF`, via: "text", raw: text });
   else if (money?.amount) put("budget", { value: money.amount, label: capitalizeFirst(money.label!), via: "text", raw: text });
 
-  const tl = findTimeline(text, now);
+  // A solicitation's due date is not the project timeline.
+  const tl = findSolicitation(text) ? null : findTimeline(text, now);
   if (tl) put("timeline", { value: tl, label: tl.text, via: "text", raw: text });
 
   const status = findSiteStatus(text, sector);

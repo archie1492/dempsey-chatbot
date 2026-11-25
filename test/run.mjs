@@ -72,7 +72,7 @@ const count = (text, needle) => text.split(needle).length - 1;
   ok("welcome identifies the virtual assistant", (await b.last()).includes("studio's virtual assistant"));
   await b.say("We just bought a 1960s house in Jupiter and want to add a second floor, maybe 1,200 sf.");
   let msg = await b.last();
-  ok("residential: acknowledges what was typed", /addition in Jupiter/.test(msg) && /South Florida/.test(msg), msg);
+  ok("residential: acknowledges what was typed", /addition in Jupiter/.test(msg) && /West Palm Beach studio/.test(msg), msg);
   ok("residential: skips straight to the sector question", /living in the home/.test(msg), msg);
   await b.shot("res-1-ack");
   await b.tap("Not decided");

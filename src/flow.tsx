@@ -21,6 +21,7 @@ import {
 import { pathFor, routeOf, session, type ContactStep, type FlowRoute } from "./session";
 import { LiveBridge, endLive, live, sendLive, startLive } from "./live";
 import { sync } from "./sync";
+import { sendToHub } from "./sync/hub";
 
 const saving = () => sync.enabled;
 
@@ -372,7 +373,9 @@ const blockFor = (route: FlowRoute): Block => {
       }
       return {
         message: async () => {
-          const res = await sync.submit(toRecord(b), contactOf(b), sendText());
+          const record = toRecord(b);
+          const res = await sync.submit(record, contactOf(b), sendText());
+          sendToHub(record, res.ok && res.ref ? res.ref : null, b.answers.location?.label ?? null);
           const text = shown(say(b, res.ok && res.ref ? COPY.sentSaved(res.ref) : COPY.sendFailed), "sent");
           card(res.ok ? "[Booking and phone options shown]" : "[Email-this-summary option shown]", "sent");
           return text;

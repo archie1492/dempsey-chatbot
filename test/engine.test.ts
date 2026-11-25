@@ -132,7 +132,7 @@ test("residential: one sentence fills type, location, size and ownership", () =>
   assert.ok(b.answers.description);
   assert.deepEqual(at, { to: "ask", q: "occupied" });
   assert.match(b.notes.join(" "), /addition in Jupiter/);
-  assert.match(b.notes.join(" "), /South Florida/);
+  assert.match(b.notes.join(" "), /West Palm Beach studio/);
 });
 
 test("residential: checkpoint, then optional questions skip what is known", () => {

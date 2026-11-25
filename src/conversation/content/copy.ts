@@ -12,7 +12,7 @@ export const STUDIO = {
   /** WhatsApp Business number, digits only with country code (used in wa.me links). */
   whatsapp: "15618890348",
   email: "info@dempsey-design.com",
-  bookingUrl: "https://calendly.com/ericjdempsey/30min",
+  bookingUrl: "https://portal.dempsey-design.com/book",
   portfolioUrl: "https://www.dempsey-design.com/portfolio",
   contactUrl: "https://www.dempsey-design.com/contact",
   privacyUrl: "https://www.dempsey-design.com/privacy-policy",
@@ -138,7 +138,7 @@ export const ACK_TEMPLATES: Array<(what: string) => string> = [
 
 /** One-off notes. Each is shown at most once per conversation. */
 export const NOTES = {
-  southFlorida: "That's within our core South Florida area.",
+  southFlorida: "That's close to our West Palm Beach studio.",
   licensed:
     "We're licensed in Florida, Arkansas, New York and Washington, D.C., so that's a location we can serve directly.",
   outside:
@@ -158,7 +158,7 @@ export const INFO: Record<string, { label: string; answer: string }> = {
   services: {
     label: "Services",
     answer:
-      "Dempsey Design offers everything from a focused consultation to full architectural services: architectural consultation and project advisory, test-fits and space planning, feasibility and due diligence, architecture, interior design, existing building and property assessments, FF&E sourcing and procurement, construction documentation and permitting, and construction administration. Many clients start with a consultation or test-fit before deciding how to proceed.",
+      "Dempsey Design offers everything from a focused consultation to full architectural services: architectural consultation and project advisory, test-fits and space planning, feasibility and due diligence, architecture, interior design, existing building and property assessments, FF&E sourcing and procurement, construction documentation and permitting, and construction administration. Our current focus is restaurants and hospitality, commercial tenant improvements, and custom homes. Many clients start with a consultation or test-fit before deciding how to proceed.",
   },
   phases: {
     label: "Design phases",
@@ -166,7 +166,6 @@ export const INFO: Record<string, { label: string; answer: string }> = {
       "Most projects move through feasibility and programming, schematic design, design development, construction documents and permitting, then construction administration. The scope of each phase is tailored to the project.",
   },
   fees: {
-    // TODO(studio): replace with your own wording on how fees are structured.
     label: "Fees",
     answer:
       "Fees are set for each project once we understand its scope, delivery approach and schedule, so there isn't a single rate to quote here. A short call with an architect is the quickest way to an accurate proposal.",
@@ -174,7 +173,7 @@ export const INFO: Record<string, { label: string; answer: string }> = {
   areas: {
     label: "Areas served",
     answer:
-      "The studio is based in West Palm Beach and works throughout South Florida, and is licensed in Florida, Arkansas, New York and Washington, D.C.",
+      "The studio is based in West Palm Beach and works throughout Florida, and is licensed in Florida, Arkansas, New York and Washington, D.C.",
   },
   permitting: {
     label: "Permitting",

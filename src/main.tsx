@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./chatbot.css";
 import { sync } from "./sync";
+import { configureHub } from "./sync/hub";
 
 /**
  * Dempsey Design chatbot loader.
@@ -54,6 +55,7 @@ function formFallback(slot: HTMLElement) {
 function mount() {
   if (document.getElementById(HOST_ID)) return; // never mount twice
   sync.configure(currentScript?.dataset.api);
+  configureHub(currentScript?.dataset.hub);
 
   const slot = document.querySelector<HTMLElement>("[data-dempsey-chat]");
   const inline = !!slot;
